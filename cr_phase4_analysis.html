@@ -1,0 +1,1515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Correlating Resonance — Phase 4: Cluster Analysis</title>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,300;1,400&family=JetBrains+Mono:wght@400;500&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
+<style>
+  :root {
+    --ink: #1a1814;
+    --ink-mid: #4a4640;
+    --ink-light: #9a9490;
+    --paper: #f7f4ef;
+    --paper-mid: #ede9e2;
+    --paper-dark: #ddd8cf;
+    --accent: #8b3a2a;
+    --accent-light: #c4735f;
+    --accent-dim: #f0e0da;
+    --success: #2a6b4a;
+    --success-bg: #f0f7f3;
+    --success-border: #b8d9c8;
+    --warning: #7a5c1a;
+    --warning-bg: #fdf5e0;
+    --warning-border: #e8d090;
+    --frame-1: #2a4a7a;
+    --frame-2: #2a6b4a;
+    --frame-3: #7a3a6a;
+    --frame-4: #5a4a1a;
+    --frame-5: #1a5a6b;
+    --rule: #d0cbc2;
+    --mono: 'JetBrains Mono', monospace;
+    --serif: 'Spectral', Georgia, serif;
+    --sans: 'Barlow', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.6; min-height: 100vh; }
+
+  header {
+    border-bottom: 2px solid var(--ink); padding: 1.75rem 3rem 1.5rem;
+    display: flex; align-items: baseline; gap: 2rem; flex-wrap: wrap;
+  }
+  .logo { font-family: var(--serif); font-weight: 300; font-size: 1.4rem; letter-spacing: -0.02em; }
+  .logo em { font-style: italic; color: var(--accent); }
+  .phase-tag {
+    font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--paper); background: var(--accent);
+    padding: 0.25rem 0.65rem; border-radius: 2px;
+  }
+  .nav-links { margin-left: auto; display: flex; gap: 1.5rem; }
+  .nav-link {
+    font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--ink-light); text-decoration: none;
+    border-bottom: 1px solid transparent; transition: color 0.15s, border-color 0.15s;
+  }
+  .nav-link:hover { color: var(--accent); border-color: var(--accent); }
+
+  .workspace { max-width: 1200px; margin: 0 auto; padding: 2.5rem 3rem; }
+
+  .section-head {
+    font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.15em;
+    text-transform: uppercase; color: var(--ink-light); margin-bottom: 1.25rem;
+    display: flex; align-items: center; gap: 0.75rem;
+  }
+  .section-head::after { content: ''; flex: 1; height: 1px; background: var(--rule); }
+
+  /* ── Pyodide status ── */
+  .pyodide-status {
+    display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1.25rem;
+    border-radius: 3px; margin-bottom: 2rem; font-size: 0.82rem;
+    font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.04em;
+    border: 1px solid var(--rule); background: white;
+  }
+  .pyodide-status.loading { color: var(--warning); border-color: var(--warning-border); background: var(--warning-bg); }
+  .pyodide-status.ready   { color: var(--success); border-color: var(--success-border); background: var(--success-bg); }
+  .pyodide-status.error   { color: var(--accent);  border-color: #e8b4aa; background: #fdf0ee; }
+  .py-spinner { width: 14px; height: 14px; border: 2px solid var(--warning-border); border-top-color: var(--warning); border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Upload zone ── */
+  .upload-zone {
+    border: 2px dashed var(--paper-dark); border-radius: 4px; padding: 1.5rem 2rem;
+    display: flex; align-items: center; gap: 1.5rem; background: white; cursor: pointer;
+    transition: border-color 0.2s, background 0.2s; position: relative; margin-bottom: 1.5rem;
+  }
+  .upload-zone:hover, .upload-zone.drag-over { border-color: var(--accent-light); background: #fdf9f7; }
+  .upload-zone.loaded { border-style: solid; border-color: var(--success); background: var(--success-bg); cursor: default; }
+  .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .upload-zone.loaded input { pointer-events: none; }
+  .upload-icon { font-size: 1.8rem; flex-shrink: 0; color: var(--ink-light); }
+  .upload-zone.loaded .upload-icon { color: var(--success); }
+  .upload-body strong { display: block; font-size: 0.88rem; color: var(--ink); margin-bottom: 0.2rem; }
+  .upload-zone.loaded .upload-body strong { color: var(--success); }
+  .upload-sub { font-family: var(--mono); font-size: 0.65rem; color: var(--ink-light); }
+  .upload-stats { font-family: var(--mono); font-size: 0.68rem; color: var(--ink-light); margin-top: 0.5rem; }
+  .upload-clear { position: absolute; top: 0.5rem; right: 0.6rem; background: none; border: none; cursor: pointer; color: var(--ink-light); font-size: 0.85rem; }
+  .upload-clear:hover { color: var(--accent); }
+
+  /* ── Step cards ── */
+  .step-card {
+    background: white; border: 1px solid var(--rule); border-radius: 4px;
+    margin-bottom: 1.5rem; overflow: hidden;
+  }
+  .step-card-header {
+    padding: 1rem 1.5rem; border-bottom: 1px solid var(--paper-mid);
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;
+  }
+  .step-card-title {
+    display: flex; align-items: center; gap: 0.75rem;
+  }
+  .step-num {
+    font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.1em;
+    text-transform: uppercase; background: var(--ink); color: var(--paper);
+    padding: 0.2rem 0.5rem; border-radius: 2px;
+  }
+  .step-num.done { background: var(--success); }
+  .step-num.active { background: var(--accent); }
+  .step-name { font-weight: 600; font-size: 0.9rem; color: var(--ink); }
+  .step-card-body { padding: 1.25rem 1.5rem; }
+
+  /* ── Stats row ── */
+  .stats-row { display: flex; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+  .stat-item { display: flex; flex-direction: column; gap: 0.1rem; }
+  .stat-val { font-family: var(--mono); font-size: 1.1rem; font-weight: 500; color: var(--ink); }
+  .stat-label { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-light); }
+
+  /* ── Threshold controls ── */
+  .threshold-modes {
+    display: flex; gap: 0; border: 1px solid var(--paper-dark);
+    border-radius: 3px; overflow: hidden; margin-bottom: 1.25rem;
+  }
+  .tmode-opt { flex: 1; position: relative; }
+  .tmode-opt input { position: absolute; opacity: 0; width: 0; }
+  .tmode-opt label {
+    display: flex; flex-direction: column; align-items: center; gap: 0.2rem;
+    padding: 0.65rem 0.75rem; cursor: pointer; background: white;
+    font-family: var(--sans); font-size: 0.75rem; font-weight: 500;
+    letter-spacing: 0.03em; border-right: 1px solid var(--paper-dark);
+    transition: background 0.15s, color 0.15s; text-align: center; margin: 0;
+  }
+  .tmode-opt:last-child label { border-right: none; }
+  .tmode-opt label span.tmode-sub { font-size: 0.62rem; color: var(--ink-light); font-weight: 400; font-family: var(--mono); }
+  .tmode-opt input:checked + label { background: var(--ink); color: var(--paper); }
+  .tmode-opt input:checked + label .tmode-sub { color: var(--paper-dark); }
+
+  .slider-row {
+    display: flex; align-items: center; gap: 1rem; margin-bottom: 1.25rem;
+    padding: 0.85rem 1rem; background: var(--paper); border-radius: 3px;
+    border: 1px solid var(--rule);
+  }
+  .slider-label { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-mid); white-space: nowrap; }
+  .slider-track { flex: 1; }
+  input[type="range"].threshold-slider {
+    width: 100%; height: 4px; -webkit-appearance: none; appearance: none;
+    background: var(--paper-dark); border-radius: 2px; outline: none; cursor: pointer;
+  }
+  input[type="range"].threshold-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
+    background: var(--accent); cursor: pointer; border: 2px solid white;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+  input[type="range"].threshold-slider::-moz-range-thumb {
+    width: 16px; height: 16px; border-radius: 50%; background: var(--accent);
+    cursor: pointer; border: 2px solid white;
+  }
+  .slider-val {
+    font-family: var(--mono); font-size: 0.88rem; font-weight: 500;
+    color: var(--accent); min-width: 2.5rem; text-align: center;
+  }
+  .slider-tick-labels {
+    display: flex; justify-content: space-between;
+    font-family: var(--mono); font-size: 0.58rem; color: var(--ink-light);
+    margin-top: 0.25rem; padding: 0 1px;
+  }
+
+  /* ── Bin stats grid ── */
+  .bin-stats-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 0.75rem; margin-bottom: 1.25rem;
+  }
+  .bin-stat-card {
+    background: white; border: 1px solid var(--rule); border-radius: 3px;
+    padding: 0.75rem 1rem;
+  }
+  .bin-stat-card.warn { border-color: var(--warning-border); background: var(--warning-bg); }
+  .bin-stat-card.good { border-color: var(--success-border); background: var(--success-bg); }
+  .bsc-val { font-family: var(--mono); font-size: 1.2rem; font-weight: 500; color: var(--ink); line-height: 1; margin-bottom: 0.2rem; }
+  .bsc-val.warn { color: var(--warning); }
+  .bsc-val.good { color: var(--success); }
+  .bsc-label { font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-light); line-height: 1.3; }
+
+  /* ── Calibration criteria ── */
+  .calibration-checks { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1.25rem; }
+  .cal-check {
+    display: flex; align-items: center; gap: 0.6rem;
+    font-family: var(--sans); font-size: 0.78rem; color: var(--ink-mid);
+  }
+  .cal-icon { font-size: 0.85rem; flex-shrink: 0; width: 1.2rem; text-align: center; }
+
+  /* ── Heatmap ── */
+  .heatmap-section { margin-bottom: 1.25rem; }
+  .heatmap-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;
+  }
+  .heatmap-label { font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-light); }
+  .heatmap-legend { display: flex; align-items: center; gap: 0.75rem; }
+  .legend-item { display: flex; align-items: center; gap: 0.35rem; font-family: var(--mono); font-size: 0.6rem; color: var(--ink-light); }
+  .legend-swatch { width: 12px; height: 12px; border-radius: 2px; flex-shrink: 0; }
+  .heatmap-wrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 3px; background: white; }
+  canvas#dtm-heatmap { display: block; image-rendering: pixelated; }
+  .heatmap-note { font-family: var(--serif); font-style: italic; font-size: 0.72rem; color: var(--ink-light); margin-top: 0.35rem; }
+
+  .confirm-bin-row { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; padding-top: 0.5rem; border-top: 1px solid var(--rule); }
+  .confirm-bin-note { font-family: var(--serif); font-style: italic; font-size: 0.82rem; color: var(--ink-light); }
+
+  /* ── Cluster controls ── */
+  .cluster-controls {
+    display: flex; align-items: center; gap: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap;
+  }
+  .cluster-label { font-size: 0.8rem; font-weight: 600; color: var(--ink-mid); text-transform: uppercase; letter-spacing: 0.04em; }
+  .cluster-stepper { display: flex; align-items: center; gap: 0; border: 1px solid var(--paper-dark); border-radius: 3px; overflow: hidden; }
+  .cluster-stepper button {
+    background: white; border: none; padding: 0.45rem 0.75rem; cursor: pointer;
+    font-family: var(--mono); font-size: 0.9rem; color: var(--ink-mid);
+    transition: background 0.15s; border-right: 1px solid var(--paper-dark);
+  }
+  .cluster-stepper button:last-child { border-right: none; }
+  .cluster-stepper button:hover { background: var(--paper-mid); }
+  .cluster-stepper span { padding: 0.45rem 1rem; font-family: var(--mono); font-size: 0.88rem; font-weight: 500; color: var(--ink); border-right: 1px solid var(--paper-dark); background: var(--paper); }
+
+  /* ── Action buttons ── */
+  .btn {
+    border: none; border-radius: 3px; padding: 0.7rem 1.5rem; font-family: var(--sans);
+    font-size: 0.82rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+    cursor: pointer; transition: background 0.15s, transform 0.1s;
+  }
+  .btn:active:not(:disabled) { transform: translateY(1px); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary { background: var(--ink); color: var(--paper); }
+  .btn-primary:hover:not(:disabled) { background: var(--accent); }
+  .btn-success { background: var(--success); color: white; }
+  .btn-success:hover:not(:disabled) { background: #1a5a3a; }
+  .btn-outline { background: none; border: 1px solid var(--paper-dark); color: var(--ink-mid); }
+  .btn-outline:hover:not(:disabled) { border-color: var(--ink); color: var(--ink); background: var(--paper); }
+
+  .btn-row { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1rem; }
+
+  /* ── TTM table ── */
+  .matrix-wrap { overflow: auto; max-height: 400px; border: 1px solid var(--rule); border-radius: 3px; }
+  .matrix-table { border-collapse: collapse; font-size: 0.68rem; white-space: nowrap; min-width: 100%; }
+  .matrix-table thead { position: sticky; top: 0; z-index: 2; }
+  .matrix-table th {
+    background: var(--ink); color: var(--paper); padding: 0.4rem 0.5rem;
+    font-family: var(--mono); font-size: 0.55rem; letter-spacing: 0.06em; text-transform: uppercase;
+    text-align: center; border-right: 1px solid #333; font-weight: 400;
+  }
+  .matrix-table th:first-child { text-align: left; min-width: 160px; position: sticky; left: 0; background: var(--ink); }
+  .matrix-table tbody tr:nth-child(even) { background: #fafaf8; }
+  .matrix-table tbody tr:hover { background: var(--accent-dim); }
+  .matrix-table td {
+    padding: 0.35rem 0.5rem; border-right: 1px solid var(--paper-mid);
+    text-align: center; font-family: var(--mono); color: var(--ink-mid);
+    border-bottom: 1px solid var(--paper-mid);
+  }
+  .matrix-table td:first-child {
+    text-align: left; position: sticky; left: 0; background: white; font-weight: 500;
+    color: var(--ink); z-index: 1;
+  }
+  .matrix-table tbody tr:hover td:first-child { background: var(--accent-dim); }
+  .ttm-high { color: var(--accent) !important; font-weight: 700; }
+  .ttm-mid  { color: var(--ink) !important; font-weight: 500; }
+  .ttm-zero { color: var(--paper-dark) !important; }
+
+  /* ── Cluster results ── */
+  .cluster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+  .cluster-card { border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; }
+  .cluster-card-header {
+    padding: 0.75rem 1rem; display: flex; align-items: center;
+    justify-content: space-between; border-bottom: 1px solid var(--paper-mid);
+  }
+  .cluster-card-name { font-weight: 600; font-size: 0.88rem; }
+  .cluster-card-count { font-family: var(--mono); font-size: 0.65rem; color: var(--ink-light); }
+  .cluster-card-body { padding: 0.75rem 1rem; }
+  .concept-tag {
+    display: inline-block; font-family: var(--mono); font-size: 0.62rem;
+    padding: 0.15rem 0.45rem; border-radius: 2px; margin: 0.15rem; line-height: 1.4;
+  }
+
+  /* Frame colours */
+  .frame-0 { background: #eef3fa; color: var(--frame-1); border: 1px solid #b0c4e0; }
+  .frame-1 { background: var(--success-bg); color: var(--frame-2); border: 1px solid var(--success-border); }
+  .frame-2 { background: #f9eef6; color: var(--frame-3); border: 1px solid #d9b0d0; }
+  .frame-3 { background: var(--warning-bg); color: var(--frame-4); border: 1px solid var(--warning-border); }
+  .frame-4 { background: #eef7f9; color: var(--frame-5); border: 1px solid #a8d4de; }
+
+  .cluster-card-header.frame-0 { background: #eef3fa; }
+  .cluster-card-header.frame-1 { background: var(--success-bg); }
+  .cluster-card-header.frame-2 { background: #f9eef6; }
+  .cluster-card-header.frame-3 { background: var(--warning-bg); }
+  .cluster-card-header.frame-4 { background: #eef7f9; }
+
+  /* ── Inertia / quality indicator ── */
+  .quality-bar-wrap { margin-bottom: 1rem; }
+  .quality-label { font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-light); margin-bottom: 0.35rem; display: flex; justify-content: space-between; }
+  .quality-bar-track { height: 6px; background: var(--paper-dark); border-radius: 3px; overflow: hidden; }
+  .quality-bar-fill { height: 100%; background: var(--success); border-radius: 3px; transition: width 0.6s ease; }
+  .quality-note { font-family: var(--serif); font-style: italic; font-size: 0.78rem; color: var(--ink-light); margin-top: 0.35rem; }
+
+  /* ── Frame naming ── */
+  .frame-naming-grid { display: flex; flex-direction: column; gap: 1rem; }
+  .frame-name-row {
+    display: grid; grid-template-columns: 120px 1fr 1fr;
+    gap: 1rem; align-items: start; padding: 1rem;
+    border: 1px solid var(--rule); border-radius: 3px; background: white;
+  }
+  .frame-badge {
+    font-family: var(--mono); font-size: 0.72rem; font-weight: 500;
+    padding: 0.35rem 0.75rem; border-radius: 3px; text-align: center;
+  }
+  .frame-name-input {
+    width: 100%; border: 1px solid var(--paper-dark); border-radius: 3px;
+    padding: 0.5rem 0.75rem; font-family: var(--sans); font-size: 0.85rem;
+    color: var(--ink); outline: none; transition: border-color 0.15s;
+  }
+  .frame-name-input:focus { border-color: var(--ink-mid); }
+  .frame-llm-name {
+    font-family: var(--serif); font-style: italic; font-size: 0.82rem;
+    color: var(--ink-mid); padding: 0.5rem 0;
+  }
+
+  /* ── Representative docs ── */
+  .rep-docs-list { margin-top: 0.5rem; }
+  .rep-doc-item {
+    display: flex; align-items: baseline; gap: 0.5rem; padding: 0.3rem 0;
+    border-bottom: 1px solid var(--paper-mid); font-size: 0.75rem;
+  }
+  .rep-doc-item:last-child { border-bottom: none; }
+  .rep-doc-score { font-family: var(--mono); font-size: 0.68rem; color: var(--accent); flex-shrink: 0; }
+  .rep-doc-name { color: var(--ink-mid); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* ── Error ── */
+  .error-box { background: #fdf0ee; border: 1px solid #e8b4aa; border-radius: 3px; padding: 1rem 1.25rem; color: var(--accent); font-size: 0.82rem; margin-bottom: 1rem; }
+  .error-box strong { display: block; font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 0.25rem; }
+
+  .callout { background: white; border-left: 3px solid var(--accent); padding: 1rem 1.25rem; margin-bottom: 2rem; font-family: var(--serif); font-size: 0.88rem; line-height: 1.7; color: var(--ink-mid); }
+  .callout strong { color: var(--ink); font-family: var(--sans); font-size: 0.82rem; }
+
+  @media (max-width: 800px) {
+    .workspace { padding: 1.5rem; }
+    header { padding: 1.25rem 1.5rem; }
+    .frame-name-row { grid-template-columns: 1fr; }
+  }
+
+  /* ── Shared navigation ── */
+  .cr-nav { border-bottom: 2px solid var(--ink); padding: 1rem 2rem; display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
+  .cr-nav-logo { font-family: var(--serif); font-weight: 300; font-size: 1.1rem; letter-spacing: -0.02em; text-decoration: none; color: var(--ink); flex-shrink: 0; }
+  .cr-nav-logo em { font-style: italic; color: var(--accent); }
+  .cr-phases { display: flex; align-items: center; gap: 0; }
+  .cr-phase-link { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.07em; text-transform: uppercase; text-decoration: none; padding: 0.3rem 0.65rem; border: 1px solid var(--paper-dark); border-right: none; color: var(--ink-light); transition: background 0.15s, color 0.15s; white-space: nowrap; }
+  .cr-phase-link:first-child { border-radius: 3px 0 0 3px; }
+  .cr-phase-link:last-child { border-right: 1px solid var(--paper-dark); border-radius: 0 3px 3px 0; }
+  .cr-phase-link:hover { background: var(--paper-mid); color: var(--ink); }
+  .cr-phase-link.current { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .cr-nav-home { margin-left: auto; font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none; color: var(--ink-light); border-bottom: 1px solid transparent; transition: color 0.15s, border-color 0.15s; }
+  .cr-nav-home:hover { color: var(--accent); border-color: var(--accent); }
+  .cr-bottom-nav { border-top: 1px solid var(--rule); padding: 1.5rem 2rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-top: 3rem; background: white; }
+  .cr-bottom-btn { font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none; color: var(--ink-mid); padding: 0.5rem 1rem; border: 1px solid var(--paper-dark); border-radius: 3px; transition: all 0.15s; }
+  .cr-bottom-btn:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .cr-bottom-btn.ghost { opacity: 0.25; pointer-events: none; }
+  .cr-bottom-center { font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-light); text-align: center; }
+</style>
+</head>
+<body>
+
+<header class="cr-nav">
+  <a href="index.html" class="cr-nav-logo"><em>Correlating Resonance</em></a>
+  <div class="cr-phases">
+    <a href="cr_phase1_typology.html" class="cr-phase-link">Phase 1 · Typology</a>
+    <a href="cr_phase2_saturation.html" class="cr-phase-link">Phase 2 · Saturation</a>
+    <a href="cr_phase3_1_coding.html" class="cr-phase-link">Phase 3 · Coding</a>
+    <a href="cr_phase4_analysis.html" class="cr-phase-link current">Phase 4 · Analysis</a>
+  </div>
+  <a href="index.html" class="cr-nav-home">Home</a>
+</header>
+
+<div class="workspace">
+
+  <div class="callout">
+    <strong>Before you begin</strong><br>
+    This phase expects a reviewed and corrected DTM CSV from Phase 3.1. Low-confidence cells (marked [?]) and any anomalous scores should be resolved in the CSV before uploading. The analysis proceeds in four steps: binarisation → TTM construction → cluster analysis → frame naming. Download the sorted TTM after Step 4.2 and compare it against the clustered output from Step 4.3 to validate the cluster structure before proceeding to naming.
+  </div>
+
+  <!-- ── Pyodide status ── -->
+  <div class="pyodide-status loading" id="pyodide-status">
+    <div class="py-spinner" id="py-spinner"></div>
+    <span id="pyodide-msg">Loading Python environment — this takes 15–30 seconds on first load…</span>
+  </div>
+
+  <!-- ── DTM upload ── -->
+  <div class="section-head">Reviewed DTM</div>
+  <div class="upload-zone" id="dtm-zone">
+    <input type="file" id="dtm-file" accept=".csv">
+    <div class="upload-icon">📊</div>
+    <div class="upload-body">
+      <strong>Drop reviewed DTM CSV here or click to browse</strong>
+      <div class="upload-sub">Output from Phase 3.1 with low-confidence cells resolved</div>
+      <div class="upload-stats" id="dtm-stats"></div>
+    </div>
+  </div>
+
+  <div id="error-display"></div>
+
+  <!-- ── Step 4.1 ── -->
+  <div class="step-card" id="card-41">
+    <div class="step-card-header">
+      <div class="step-card-title">
+        <span class="step-num" id="num-41">4.1</span>
+        <span class="step-name">Binarisation</span>
+      </div>
+      <div id="bin-status" style="font-family:var(--mono);font-size:0.68rem;color:var(--ink-light);"></div>
+    </div>
+    <div class="step-card-body" id="bin-card-body">
+      <p style="font-family:var(--serif);font-style:italic;font-size:0.82rem;color:var(--ink-light);" id="bin-waiting">
+        Upload a DTM to begin.
+      </p>
+      <div id="bin-controls" style="display:none;">
+
+        <!-- Mode selector -->
+        <div style="margin-bottom:0.75rem;">
+          <div style="font-family:var(--mono);font-size:0.65rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-light);margin-bottom:0.6rem;">Threshold method</div>
+          <div class="threshold-modes">
+            <div class="tmode-opt">
+              <input type="radio" name="tmode" id="tmode-auto" value="auto" checked>
+              <label for="tmode-auto">Auto — mean of non-zero<span class="tmode-sub">experimental</span></label>
+            </div>
+            <div class="tmode-opt">
+              <input type="radio" name="tmode" id="tmode-fixed" value="fixed">
+              <label for="tmode-fixed">Fixed — rating boundary<span class="tmode-sub">scores ≥ 2</span></label>
+            </div>
+            <div class="tmode-opt">
+              <input type="radio" name="tmode" id="tmode-manual" value="manual">
+              <label for="tmode-manual">Manual — set threshold<span class="tmode-sub">researcher judgement</span></label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Slider (shown for auto and manual) -->
+        <div class="slider-row" id="slider-row">
+          <span class="slider-label">Threshold</span>
+          <div class="slider-track">
+            <input type="range" class="threshold-slider" id="threshold-slider" min="0" max="3" step="0.05" value="2">
+            <div class="slider-tick-labels" id="slider-ticks">
+              <span>0</span><span>0.5</span><span>1</span><span>1.5</span><span>2</span><span>2.5</span><span>3</span>
+            </div>
+          </div>
+          <span class="slider-val" id="slider-val-display">2.00</span>
+        </div>
+
+        <!-- Stats grid -->
+        <div class="bin-stats-grid" id="bin-stats-grid"></div>
+
+        <!-- Calibration criteria -->
+        <div class="calibration-checks" id="cal-checks"></div>
+
+        <!-- Heatmap -->
+        <div class="heatmap-section">
+          <div class="heatmap-header">
+            <span class="heatmap-label">DTM heatmap — rows: documents · columns: concepts (sorted by importance)</span>
+            <div class="heatmap-legend">
+              <div class="legend-item"><div class="legend-swatch" style="background:#f0f7f3;border:1px solid #b8d9c8;"></div>Important (≥ threshold)</div>
+              <div class="legend-item"><div class="legend-swatch" style="background:#f7f4ef;border:1px solid #ddd8cf;"></div>Not important</div>
+              <div class="legend-item" id="legend-score3"><div class="legend-swatch" style="background:#8b3a2a;"></div>Score 3</div>
+            </div>
+          </div>
+          <div class="heatmap-wrap">
+            <canvas id="dtm-heatmap"></canvas>
+          </div>
+          <div class="heatmap-note">Each pixel-column is a concept; each pixel-row is a document. Brighter cells indicate higher scores. The green/grey boundary shifts as you adjust the threshold.</div>
+        </div>
+
+        <!-- Confirm -->
+        <div class="confirm-bin-row">
+          <button class="btn btn-success" id="confirm-bin-btn" onclick="confirmBinarisation()">Confirm threshold and build TTM →</button>
+          <span class="confirm-bin-note" id="confirm-bin-note"></span>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Step 4.2 ── -->
+  <div class="step-card" id="card-42">
+    <div class="step-card-header">
+      <div class="step-card-title">
+        <span class="step-num" id="num-42">4.2</span>
+        <span class="step-name">Term-Term Matrix</span>
+      </div>
+      <div style="display:flex;gap:0.5rem;" id="ttm-actions" style="display:none;"></div>
+    </div>
+    <div class="step-card-body" id="ttm-body">
+      <p style="font-family:var(--serif);font-style:italic;font-size:0.82rem;color:var(--ink-light);">Waiting for binarisation…</p>
+    </div>
+  </div>
+
+  <!-- ── Step 4.3 ── -->
+  <div class="step-card" id="card-43">
+    <div class="step-card-header">
+      <div class="step-card-title">
+        <span class="step-num" id="num-43">4.3</span>
+        <span class="step-name">Cluster Analysis</span>
+      </div>
+    </div>
+    <div class="step-card-body" id="cluster-body">
+      <p style="font-family:var(--serif);font-style:italic;font-size:0.82rem;color:var(--ink-light);">Waiting for TTM construction…</p>
+    </div>
+  </div>
+
+  <!-- ── Step 4.4 ── -->
+  <div class="step-card" id="card-44">
+    <div class="step-card-header">
+      <div class="step-card-title">
+        <span class="step-num" id="num-44">4.4</span>
+        <span class="step-name">Frame Naming</span>
+      </div>
+    </div>
+    <div class="step-card-body" id="naming-body">
+      <p style="font-family:var(--serif);font-style:italic;font-size:0.82rem;color:var(--ink-light);">Waiting for confirmed cluster structure…</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const API_KEY = 'YOUR_API_KEY_HERE';
+const MODEL   = 'claude-sonnet-4-20250514';
+
+// ── State ─────────────────────────────────────────────────────────────
+let dtmData       = null;  // {mode, docs:[{id,name}], concepts:[str], matrix:[[num]]}
+let binaryMatrix  = null;  // [[0|1]] rows=docs, cols=concepts
+let ttmData       = null;  // {concepts:[str], matrix:[[num]], sorted:[idx], totals:[num]}
+let clusterResult = null;  // {assignments:[int], n_clusters, explained_variance, concept_clusters}
+let pyodideReady  = false;
+let pyodide       = null;
+let nClusters     = 4;
+
+// ── Load Pyodide ──────────────────────────────────────────────────────
+async function initPyodide() {
+  try {
+    setStatus('loading', 'Loading Python environment…');
+    pyodide = await loadPyodide();
+    setStatus('loading', 'Installing analysis packages (numpy, scipy, scikit-learn)…');
+    await pyodide.loadPackage(['numpy', 'scipy', 'scikit-learn']);
+    pyodideReady = true;
+    setStatus('ready', 'Python environment ready — MCA via TruncatedSVD (scikit-learn)');
+    document.getElementById('py-spinner').style.display = 'none';
+  } catch (err) {
+    setStatus('error', 'Could not load Python environment: ' + err.message);
+  }
+}
+
+function setStatus(state, msg) {
+  const el = document.getElementById('pyodide-status');
+  el.className = `pyodide-status ${state}`;
+  document.getElementById('pyodide-msg').textContent = msg;
+}
+
+initPyodide();
+
+// ── DTM upload ────────────────────────────────────────────────────────
+const dtmZone = document.getElementById('dtm-zone');
+document.getElementById('dtm-file').addEventListener('change', e => { if (e.target.files[0]) loadDTM(e.target.files[0]); });
+dtmZone.addEventListener('dragover', e => { e.preventDefault(); dtmZone.classList.add('drag-over'); });
+dtmZone.addEventListener('dragleave', () => dtmZone.classList.remove('drag-over'));
+dtmZone.addEventListener('drop', e => {
+  e.preventDefault(); dtmZone.classList.remove('drag-over');
+  if (e.dataTransfer.files[0]) loadDTM(e.dataTransfer.files[0]);
+});
+
+async function loadDTM(file) {
+  clearError();
+  try {
+    const text = await file.text();
+    dtmData = parseDTMCSV(text);
+    if (!dtmData.docs.length) throw new Error('No document rows found');
+    if (!dtmData.concepts.length) throw new Error('No concept columns found');
+
+    dtmZone.classList.add('loaded');
+    dtmZone.querySelector('.upload-icon').textContent = '✓';
+    dtmZone.querySelector('.upload-body strong').textContent = file.name;
+    document.getElementById('dtm-stats').textContent =
+      `${dtmData.docs.length} documents · ${dtmData.concepts.length} concepts · ${dtmData.mode} mode`;
+
+    if (!dtmZone.querySelector('.upload-clear')) {
+      const cb = document.createElement('button');
+      cb.className = 'upload-clear'; cb.textContent = '✕';
+      cb.addEventListener('click', e => {
+        e.stopPropagation(); resetAll();
+        dtmZone.classList.remove('loaded');
+        dtmZone.querySelector('.upload-icon').textContent = '📊';
+        dtmZone.querySelector('.upload-body strong').textContent = 'Drop reviewed DTM CSV here or click to browse';
+        document.getElementById('dtm-stats').textContent = '';
+        document.getElementById('dtm-file').value = '';
+        cb.remove();
+      });
+      dtmZone.appendChild(cb);
+    }
+
+    initBinarisation();
+  } catch (err) { showError('Could not load DTM: ' + err.message); }
+}
+function parseDTMCSV(text) {
+  let headers = null, colDocId = -1, colFilename = -1, colMethod = -1;
+  const docs = [], matrix = [];
+  let mode = 'rating';
+
+  for (const rawLine of text.split('\n')) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    if (line.startsWith('#')) {
+      if (line.toLowerCase().includes('frequency')) mode = 'frequency';
+      continue;
+    }
+    const cells = parseCSVRow(line);
+    if (!headers) {
+      headers = cells.map(c => c.toLowerCase().trim());
+      colDocId   = headers.indexOf('doc_id');
+      colFilename = headers.findIndex(h => h === 'full_filename' || h === 'filename');
+      colMethod  = headers.indexOf('extraction_method');
+      continue;
+    }
+    const id   = (cells[colDocId]    || '').trim();
+    const name = (cells[colFilename] || '').trim();
+    if (!name && !id) continue;
+
+    // Score columns start after doc_id, filename, and optional method col
+    const skipCols = new Set([colDocId, colFilename, colMethod].filter(c => c >= 0));
+    const scores = [];
+    for (let i = 0; i < cells.length; i++) {
+      if (skipCols.has(i)) continue;
+      const raw = (cells[i] || '0').replace('[?]', '').trim();
+      scores.push(parseFloat(raw) || 0);
+    }
+    docs.push({ id, name });
+    matrix.push(scores);
+  }
+
+  // Concepts are the non-skip header columns
+  const skipCols = new Set([colDocId, colFilename, colMethod].filter(c => c >= 0));
+  const concepts = headers.filter((_, i) => !skipCols.has(i));
+
+  return { mode, docs, concepts, matrix };
+}
+
+// ── Step 4.1: Binarisation ────────────────────────────────────────────
+function initBinarisation() {
+  const isRating  = dtmData.mode !== 'frequency';
+  const allScores = dtmData.matrix.flat().filter(v => v > 0);
+  const autoThreshold = allScores.length
+    ? allScores.reduce((a, b) => a + b, 0) / allScores.length
+    : 2.0;
+  const maxScore = Math.max(...dtmData.matrix.flat(), 1);
+
+  // Configure slider range
+  const slider = document.getElementById('threshold-slider');
+  slider.min   = isRating ? '0' : '0';
+  slider.max   = isRating ? '3' : String(maxScore);
+  slider.step  = isRating ? '0.05' : '1';
+
+  // Tick labels
+  const ticks = document.getElementById('slider-ticks');
+  if (isRating) {
+    ticks.innerHTML = '<span>0</span><span>0.5</span><span>1</span><span>1.5</span><span>2</span><span>2.5</span><span>3</span>';
+  } else {
+    ticks.innerHTML = Array.from({ length: Math.min(maxScore + 1, 8) }, (_, i) =>
+      `<span>${Math.round(i * maxScore / Math.min(maxScore, 7))}</span>`).join('');
+  }
+
+  // Store auto threshold for reference
+  slider.dataset.autoThreshold = autoThreshold.toFixed(3);
+
+  // Set initial value to auto threshold
+  slider.value = autoThreshold.toFixed(3);
+  document.getElementById('slider-val-display').textContent = autoThreshold.toFixed(2);
+
+  // Wire mode buttons
+  document.querySelectorAll('input[name="tmode"]').forEach(r => {
+    r.addEventListener('change', () => onModeChange());
+  });
+
+  // Wire slider
+  slider.addEventListener('input', () => {
+    document.getElementById('slider-val-display').textContent = parseFloat(slider.value).toFixed(2);
+    updateBinarisation();
+  });
+
+  document.getElementById('bin-waiting').style.display  = 'none';
+  document.getElementById('bin-controls').style.display = 'block';
+
+  onModeChange();
+}
+
+function onModeChange() {
+  const mode   = document.querySelector('input[name="tmode"]:checked').value;
+  const slider = document.getElementById('threshold-slider');
+  const sliderRow = document.getElementById('slider-row');
+
+  if (mode === 'auto') {
+    slider.value = slider.dataset.autoThreshold || '2';
+    document.getElementById('slider-val-display').textContent = parseFloat(slider.value).toFixed(2);
+    sliderRow.style.opacity    = '0.5';
+    sliderRow.style.pointerEvents = 'none';
+    document.getElementById('bin-status').textContent = 'Auto — mean of non-zero scores (experimental)';
+  } else if (mode === 'fixed') {
+    slider.value = '2';
+    document.getElementById('slider-val-display').textContent = '2.00';
+    sliderRow.style.opacity    = '0.5';
+    sliderRow.style.pointerEvents = 'none';
+    document.getElementById('bin-status').textContent = 'Fixed — rating mode boundary (scores ≥ 2)';
+  } else {
+    sliderRow.style.opacity    = '1';
+    sliderRow.style.pointerEvents = 'auto';
+    document.getElementById('bin-status').textContent = 'Manual — researcher set threshold';
+  }
+
+  updateBinarisation();
+}
+
+function getCurrentThreshold() {
+  const mode   = document.querySelector('input[name="tmode"]:checked').value;
+  const slider = document.getElementById('threshold-slider');
+  if (mode === 'fixed') return 2.0;
+  return parseFloat(slider.value) || 2.0;
+}
+
+function updateBinarisation() {
+  const t = getCurrentThreshold();
+
+  // Compute binary matrix
+  binaryMatrix = dtmData.matrix.map(row => row.map(val => val >= t ? 1 : 0));
+
+  renderBinStats(t);
+  renderHeatmap(t);
+}
+
+function renderBinStats(t) {
+  const nDocs     = binaryMatrix.length;
+  const nConcepts = dtmData.concepts.length;
+  const total     = nDocs * nConcepts;
+  const ones      = binaryMatrix.flat().reduce((a, b) => a + b, 0);
+  const density   = ones / total;
+
+  // Per-document important concept counts
+  const docCounts = binaryMatrix.map(row => row.reduce((a, b) => a + b, 0));
+  const mean      = docCounts.reduce((a, b) => a + b, 0) / nDocs;
+  const sd        = Math.sqrt(docCounts.reduce((s, x) => s + (x - mean) ** 2, 0) / nDocs);
+
+  const sparse    = docCounts.filter(c => c < mean - sd).length;
+  const dense     = docCounts.filter(c => c > mean + sd).length;
+
+  // Per-concept importance
+  const conceptCounts = dtmData.concepts.map((_, ci) =>
+    binaryMatrix.filter(row => row[ci] === 1).length);
+  const conceptsAboveHalf = conceptCounts.filter(c => c > nDocs / 2).length;
+  const peripheralConcepts = conceptCounts.filter(c => c < nDocs * 0.1).length;
+
+  // Calibration criteria
+  const crit1 = (conceptsAboveHalf / nConcepts) > 0.5;
+  const crit2 = density > 0.05;  // proxy for co-occurrence criterion
+
+  const densityClass  = density > 0.15 && density < 0.6 ? 'good' : 'warn';
+  const sparseClass   = sparse > nDocs * 0.2 ? 'warn' : 'good';
+  const peripheralClass = peripheralConcepts > nConcepts * 0.3 ? 'warn' : 'good';
+
+  document.getElementById('bin-stats-grid').innerHTML = `
+    <div class="bin-stat-card ${densityClass}">
+      <div class="bsc-val ${densityClass}">${(density * 100).toFixed(1)}%</div>
+      <div class="bsc-label">Matrix density<br>(important cells)</div>
+    </div>
+    <div class="bin-stat-card">
+      <div class="bsc-val">${mean.toFixed(1)} <span style="font-size:0.7rem;color:var(--ink-light);">± ${sd.toFixed(1)}</span></div>
+      <div class="bsc-label">Avg important concepts<br>per document</div>
+    </div>
+    <div class="bin-stat-card ${sparseClass}">
+      <div class="bsc-val ${sparseClass}">${sparse}</div>
+      <div class="bsc-label">Sparse documents<br>(&lt; mean − 1SD)</div>
+    </div>
+    <div class="bin-stat-card">
+      <div class="bsc-val">${dense}</div>
+      <div class="bsc-label">Dense documents<br>(&gt; mean + 1SD)</div>
+    </div>
+    <div class="bin-stat-card">
+      <div class="bsc-val">${conceptsAboveHalf}<span style="font-size:0.7rem;color:var(--ink-light);"> / ${nConcepts}</span></div>
+      <div class="bsc-label">Concepts important<br>in &gt;50% of documents</div>
+    </div>
+    <div class="bin-stat-card ${peripheralClass}">
+      <div class="bsc-val ${peripheralClass}">${peripheralConcepts}</div>
+      <div class="bsc-label">Peripheral concepts<br>(&lt;10% of documents)</div>
+    </div>`;
+
+  document.getElementById('cal-checks').innerHTML = `
+    <div class="cal-check">
+      <span class="cal-icon">${crit1 ? '✓' : '✗'}</span>
+      <span style="color:${crit1 ? 'var(--success)' : 'var(--accent)'};">
+        ${crit1 ? 'Met' : 'Not met'}: more than half the concepts are important in more than half the documents
+        (${conceptsAboveHalf} of ${nConcepts} concepts, ${(conceptsAboveHalf/nConcepts*100).toFixed(0)}%)
+      </span>
+    </div>
+    <div class="cal-check">
+      <span class="cal-icon">${crit2 ? '✓' : '✗'}</span>
+      <span style="color:${crit2 ? 'var(--success)' : 'var(--accent)'};">
+        ${crit2 ? 'Met' : 'Not met'}: matrix density sufficient for co-occurrence analysis
+        (${(density*100).toFixed(1)}% — target 15–60%)
+      </span>
+    </div>`;
+
+  document.getElementById('confirm-bin-note').textContent =
+    `Threshold: ${t.toFixed(2)} · ${ones} important cells · ${(density*100).toFixed(1)}% density`;
+}
+
+function renderHeatmap(t) {
+  const canvas   = document.getElementById('dtm-heatmap');
+  const ctx      = canvas.getContext('2d');
+  const nDocs    = dtmData.matrix.length;
+  const nConcepts = dtmData.concepts.length;
+  const isRating = dtmData.mode !== 'frequency';
+
+  // Sort: columns by total importance, rows by total importance
+  const colTotals = dtmData.concepts.map((_, ci) =>
+    dtmData.matrix.reduce((s, row) => s + (row[ci] || 0), 0));
+  const colOrder = colTotals.map((v, i) => ({ i, v })).sort((a, b) => b.v - a.v).map(x => x.i);
+
+  const rowTotals = dtmData.matrix.map(row => row.reduce((a, b) => a + b, 0));
+  const rowOrder = rowTotals.map((v, i) => ({ i, v })).sort((a, b) => b.v - a.v).map(x => x.i);
+
+  const cellW = Math.max(3, Math.min(8, Math.floor(900 / nConcepts)));
+  const cellH = Math.max(2, Math.min(6, Math.floor(600 / nDocs)));
+
+  canvas.width  = nConcepts * cellW;
+  canvas.height = nDocs * cellH;
+  canvas.style.width  = canvas.width  + 'px';
+  canvas.style.height = canvas.height + 'px';
+
+  const maxVal = isRating ? 3 : Math.max(...dtmData.matrix.flat(), 1);
+
+  rowOrder.forEach((ri, row) => {
+    colOrder.forEach((ci, col) => {
+      const val       = dtmData.matrix[ri][ci] || 0;
+      const important = val >= t;
+      const ratio     = val / maxVal;
+
+      let r, g, b;
+      if (important) {
+        if (isRating && val === 3) {
+          // Score 3: accent red
+          r = Math.round(139 + (255 - 139) * (1 - ratio));
+          g = Math.round(58  * (1 - ratio * 0.5));
+          b = Math.round(42  * (1 - ratio * 0.5));
+        } else {
+          // Important: green range
+          r = Math.round(240 - ratio * 80);
+          g = Math.round(247 - ratio * 60);
+          b = Math.round(240 - ratio * 80);
+          // Actually use a cleaner green
+          r = Math.round(42  + (180 - 42)  * (1 - ratio));
+          g = Math.round(107 + (230 - 107) * (1 - ratio));
+          b = Math.round(74  + (190 - 74)  * (1 - ratio));
+        }
+      } else {
+        // Not important: greyscale, lighter = lower value
+        const grey = Math.round(240 + (252 - 240) * (1 - ratio));
+        r = g = b = grey;
+      }
+
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.fillRect(col * cellW, row * cellH, cellW, cellH);
+    });
+  });
+}
+
+function confirmBinarisation() {
+  markStepDone('41');
+  buildTTM();
+}
+
+// ── Step 4.2: TTM construction ────────────────────────────────────────
+function buildTTM() {
+  const nConcepts = dtmData.concepts.length;
+  const nDocs     = binaryMatrix.length;
+
+  // Co-occurrence matrix
+  const matrix = Array.from({ length: nConcepts }, () => new Array(nConcepts).fill(0));
+  for (let d = 0; d < nDocs; d++) {
+    for (let i = 0; i < nConcepts; i++) {
+      if (!binaryMatrix[d][i]) continue;
+      for (let j = i; j < nConcepts; j++) {
+        if (!binaryMatrix[d][j]) continue;
+        matrix[i][j]++;
+        if (i !== j) matrix[j][i]++;
+      }
+    }
+  }
+
+  // Sort by total co-occurrence descending
+  const totals = matrix.map(row => row.reduce((a, b) => a + b, 0));
+  const sorted = totals
+    .map((t, i) => ({ i, t }))
+    .sort((a, b) => b.t - a.t)
+    .map(x => x.i);
+
+  ttmData = { concepts: dtmData.concepts, matrix, sorted, totals };
+
+  renderTTM();
+  markStepDone('42');
+  renderClusterControls();
+}
+
+function renderTTM() {
+  const body    = document.getElementById('ttm-body');
+  const actions = document.getElementById('ttm-actions');
+  const { concepts, matrix, sorted, totals } = ttmData;
+  const max     = Math.max(...totals);
+  const preview = sorted.slice(0, 25);
+
+  body.innerHTML = `
+    <div class="stats-row" style="margin-bottom:1rem;">
+      <div class="stat-item"><span class="stat-val">${concepts.length}</span><span class="stat-label">Concepts</span></div>
+      <div class="stat-item"><span class="stat-val">${ttmData.sorted.length}</span><span class="stat-label">Sorted by co-occurrence</span></div>
+    </div>
+    <div class="matrix-wrap" id="ttm-matrix-wrap"></div>
+    ${concepts.length > 25 ? `<div style="font-family:var(--serif);font-style:italic;font-size:0.75rem;color:var(--ink-light);margin-top:0.5rem;">Preview shows top 25 concepts by co-occurrence — download full TTM for complete matrix</div>` : ''}`;
+
+  const wrap  = body.querySelector('#ttm-matrix-wrap');
+  const table = document.createElement('table');
+  table.className = 'matrix-table';
+
+  // Header
+  const thead = document.createElement('thead');
+  const hr    = document.createElement('tr');
+  const th0   = document.createElement('th');
+  th0.textContent = 'Concept';
+  hr.appendChild(th0);
+  preview.forEach(ci => {
+    const th = document.createElement('th');
+    th.textContent = concepts[ci].substring(0, 10);
+    th.title = concepts[ci];
+    hr.appendChild(th);
+  });
+  const thTotal = document.createElement('th');
+  thTotal.textContent = 'Total';
+  hr.appendChild(thTotal);
+  thead.appendChild(hr);
+  table.appendChild(thead);
+
+  // Body
+  const tbody = document.createElement('tbody');
+  preview.forEach(ri => {
+    const tr = document.createElement('tr');
+    const tdName = document.createElement('td');
+    tdName.textContent = concepts[ri].length > 22 ? concepts[ri].substring(0,20)+'…' : concepts[ri];
+    tdName.title = concepts[ri];
+    tr.appendChild(tdName);
+    preview.forEach(ci => {
+      const td  = document.createElement('td');
+      const val = matrix[ri][ci];
+      td.textContent = val || '·';
+      if (val > max * 0.6) td.classList.add('ttm-high');
+      else if (val > max * 0.3) td.classList.add('ttm-mid');
+      else if (!val) td.classList.add('ttm-zero');
+      tr.appendChild(td);
+    });
+    const tdTotal = document.createElement('td');
+    tdTotal.textContent = totals[ri];
+    tdTotal.style.cssText = 'font-weight:600;color:var(--ink);';
+    tr.appendChild(tdTotal);
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  wrap.appendChild(table);
+
+  // Export button
+  actions.innerHTML = '';
+  const exportBtn = document.createElement('button');
+  exportBtn.className = 'btn btn-outline';
+  exportBtn.style.fontSize = '0.72rem';
+  exportBtn.textContent = '↓ Download sorted TTM';
+  exportBtn.onclick = exportTTM;
+  actions.appendChild(exportBtn);
+  actions.style.display = 'flex';
+}
+
+function exportTTM() {
+  const { concepts, matrix, sorted } = ttmData;
+  const sortedConcepts = sorted.map(i => concepts[i]);
+  const lines = [
+    '# CORRELATING RESONANCE — TERM-TERM MATRIX (sorted by total co-occurrence)',
+    `# Generated: ${new Date().toLocaleString()}`,
+    '# Each cell = number of documents in which both concepts scored as important',
+    '#',
+    ['Concept', ...sortedConcepts].map(csvCell).join(',')
+  ];
+  sorted.forEach(ri => {
+    const row = [csvCell(concepts[ri]), ...sorted.map(ci => matrix[ri][ci])];
+    lines.push(row.join(','));
+  });
+  download(`CR_TTM_Sorted_${today()}.csv`, lines.join('\n'), 'text/csv');
+}
+
+// ── Step 4.3: Cluster analysis ────────────────────────────────────────
+function renderClusterControls() {
+  const body = document.getElementById('cluster-body');
+  body.innerHTML = `
+    <p style="font-family:var(--serif);font-size:0.85rem;color:var(--ink-mid);margin-bottom:1.25rem;">
+      Set the number of clusters and run MCA. Compare the cluster output against the downloaded sorted TTM — concepts that appear adjacent in the sorted TTM but are assigned to different clusters may indicate the cluster count needs adjustment. Re-run with different values until the cluster structure shows meaningful differentiation.
+    </p>
+    <div class="cluster-controls">
+      <span class="cluster-label">Number of clusters</span>
+      <div class="cluster-stepper">
+        <button onclick="adjustClusters(-1)">−</button>
+        <span id="cluster-count-display">${nClusters}</span>
+        <button onclick="adjustClusters(1)">+</button>
+      </div>
+      <button class="btn btn-primary" id="run-mca-btn" onclick="runMCA()">Run MCA →</button>
+    </div>
+    <div id="mca-running" style="display:none;font-family:var(--serif);font-style:italic;font-size:0.85rem;color:var(--ink-light);">
+      Running MCA via TruncatedSVD…
+    </div>
+    <div id="cluster-results"></div>`;
+}
+
+function adjustClusters(delta) {
+  nClusters = Math.max(2, Math.min(10, nClusters + delta));
+  document.getElementById('cluster-count-display').textContent = nClusters;
+}
+
+async function runMCA() {
+  if (!pyodideReady) { showError('Python environment not ready yet — please wait'); return; }
+  clearError();
+  document.getElementById('run-mca-btn').disabled = true;
+  document.getElementById('mca-running').style.display = 'block';
+  document.getElementById('cluster-results').innerHTML = '';
+
+  try {
+    // Build binary indicator matrix from binaryMatrix (docs × concepts)
+    const binaryFlat   = binaryMatrix.flat();
+    const nDocs        = binaryMatrix.length;
+    const nConceptsN   = dtmData.concepts.length;
+
+    // Pass data to Python
+    pyodide.globals.set('binary_flat',   binaryFlat);
+    pyodide.globals.set('n_docs',        nDocs);
+    pyodide.globals.set('n_concepts',    nConceptsN);
+    pyodide.globals.set('n_clusters',    nClusters);
+
+    const result = await pyodide.runPythonAsync(`
+import numpy as np
+from sklearn.decomposition import TruncatedSVD
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import normalize
+import json
+
+# Reconstruct binary matrix
+X = np.array(binary_flat, dtype=float).reshape(n_docs, n_concepts)
+
+# Build indicator matrix for MCA (one-hot encoding of 0/1 values)
+# For binary data this is equivalent to [1-X, X] column-wise
+Z = np.hstack([1 - X, X])
+
+# Chi-square normalisation
+row_mass = Z.sum(axis=1, keepdims=True)
+col_mass = Z.sum(axis=0, keepdims=True)
+total    = Z.sum()
+row_mass = np.where(row_mass == 0, 1, row_mass)
+col_mass = np.where(col_mass == 0, 1, col_mass)
+Z_norm   = (Z / total) / np.sqrt((row_mass / total) * (col_mass / total))
+
+# TruncatedSVD for dimensionality reduction
+n_components = min(n_clusters + 2, min(Z_norm.shape) - 1)
+svd = TruncatedSVD(n_components=n_components, random_state=42)
+
+# We cluster the CONCEPT coordinates (lower half of Z)
+# Concept coordinates are the column coordinates in MCA
+Z_concept = Z_norm[:, n_concepts:]   # The "important=1" half
+coords = svd.fit_transform(Z_concept.T)   # shape: n_concepts × n_components
+
+# K-means clustering on concept coordinates
+kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=20)
+assignments = kmeans.fit_predict(coords).tolist()
+
+# Explained variance ratio
+explained = float(svd.explained_variance_ratio_.sum())
+
+# Cluster distances — inertia normalised
+inertia = float(kmeans.inertia_)
+
+json.dumps({
+    "assignments": assignments,
+    "explained_variance": round(explained, 4),
+    "inertia": round(inertia, 2),
+    "coords": coords.tolist()
+})
+`);
+
+    const parsed     = JSON.parse(result);
+    clusterResult    = {
+      assignments:        parsed.assignments,
+      n_clusters:         nClusters,
+      explained_variance: parsed.explained_variance,
+      inertia:            parsed.inertia,
+      coords:             parsed.coords
+    };
+
+    renderClusterResults();
+    markStepActive('43');
+
+  } catch (err) {
+    showError('MCA failed: ' + err.message);
+  } finally {
+    document.getElementById('run-mca-btn').disabled = false;
+    document.getElementById('mca-running').style.display = 'none';
+  }
+}
+
+function renderClusterResults() {
+  const { assignments, explained_variance, inertia } = clusterResult;
+  const concepts = dtmData.concepts;
+  const resultsDiv = document.getElementById('cluster-results');
+
+  // Group concepts by cluster
+  const clusters = {};
+  assignments.forEach((c, i) => {
+    if (!clusters[c]) clusters[c] = [];
+    clusters[c].push(i);
+  });
+
+  // Quality indicator
+  const evPct = (explained_variance * 100).toFixed(1);
+
+  let html = `
+    <div class="quality-bar-wrap">
+      <div class="quality-label">
+        <span>Explained variance (TruncatedSVD)</span>
+        <span>${evPct}%</span>
+      </div>
+      <div class="quality-bar-track">
+        <div class="quality-bar-fill" style="width:${Math.min(100, explained_variance * 100)}%;"></div>
+      </div>
+      <div class="quality-note">Higher values indicate the components capture more of the variance in concept co-occurrence patterns. Compare this value across different cluster counts when deciding on structure.</div>
+    </div>
+    <div class="cluster-grid">`;
+
+  Object.entries(clusters).sort((a,b) => parseInt(a[0]) - parseInt(b[0])).forEach(([cId, conceptIdxs]) => {
+    const frameClass = `frame-${cId}`;
+    html += `
+      <div class="cluster-card">
+        <div class="cluster-card-header ${frameClass}">
+          <span class="cluster-card-name">Cluster ${parseInt(cId)+1}</span>
+          <span class="cluster-card-count">${conceptIdxs.length} concepts</span>
+        </div>
+        <div class="cluster-card-body">
+          ${conceptIdxs.map(ci => `<span class="concept-tag ${frameClass}">${escHtml(concepts[ci])}</span>`).join('')}
+        </div>
+      </div>`;
+  });
+
+  html += `</div>
+    <div class="btn-row">
+      <button class="btn btn-success" onclick="confirmClusters()">Confirm this cluster structure → proceed to naming</button>
+      <button class="btn btn-outline" onclick="exportClusteredTTM()">↓ Download clustered TTM</button>
+    </div>`;
+
+  resultsDiv.innerHTML = html;
+}
+
+function exportClusteredTTM() {
+  const { assignments } = clusterResult;
+  const concepts = dtmData.concepts;
+  const { matrix } = ttmData;
+
+  // Sort concepts by cluster assignment then by total co-occurrence within cluster
+  const sorted = concepts.map((c, i) => ({ i, c, cluster: assignments[i], total: ttmData.totals[i] }))
+    .sort((a, b) => a.cluster - b.cluster || b.total - a.total)
+    .map(x => x.i);
+
+  const sortedConcepts = sorted.map(i => concepts[i]);
+  const sortedAssign   = sorted.map(i => assignments[i]);
+
+  const lines = [
+    '# CORRELATING RESONANCE — TERM-TERM MATRIX (sorted by cluster)',
+    `# Generated: ${new Date().toLocaleString()}`,
+    `# Clusters: ${clusterResult.n_clusters} · Explained variance: ${(clusterResult.explained_variance*100).toFixed(1)}%`,
+    '#',
+    ['Cluster', 'Concept', ...sortedConcepts].map(csvCell).join(',')
+  ];
+
+  sorted.forEach((ri, pos) => {
+    const row = [
+      sortedAssign[pos] + 1,
+      csvCell(concepts[ri]),
+      ...sorted.map(ci => matrix[ri][ci])
+    ];
+    lines.push(row.join(','));
+  });
+
+  download(`CR_TTM_Clustered_${nClusters}clusters_${today()}.csv`, lines.join('\n'), 'text/csv');
+}
+
+function confirmClusters() {
+  markStepDone('43');
+  renderFrameNaming();
+}
+
+// ── Step 4.4: Frame naming ────────────────────────────────────────────
+async function renderFrameNaming() {
+  const body = document.getElementById('naming-body');
+  body.innerHTML = `<div style="font-family:var(--serif);font-style:italic;color:var(--ink-light);">Generating working frame names…</div>`;
+  markStepActive('44');
+
+  const { assignments } = clusterResult;
+  const concepts = dtmData.concepts;
+  const { matrix, totals } = ttmData;
+
+  // Build cluster summaries for the LLM
+  const clusters = {};
+  assignments.forEach((c, i) => {
+    if (!clusters[c]) clusters[c] = [];
+    clusters[c].push({ concept: concepts[i], total: totals[i] });
+  });
+
+  // Find representative documents for each cluster
+  const repDocs = findRepresentativeDocuments(clusters, assignments);
+
+  const clusterSummary = Object.entries(clusters)
+    .sort((a,b) => parseInt(a[0]) - parseInt(b[0]))
+    .map(([cId, items]) => {
+      const top = items.sort((a,b) => b.total - a.total).slice(0, 8);
+      return `Cluster ${parseInt(cId)+1}: ${top.map(x => x.concept).join(', ')}`;
+    }).join('\n');
+
+  try {
+    const response = await callAPI(
+      `You are a research assistant helping to name frames of reference identified through Correlating Resonance frame analysis — a methodology that identifies conceptual configurations underpinning conflicting positions in contested policy spaces.
+
+Each cluster represents a frame of reference: a configuration of concepts that co-occur across the documents in the corpus. Your task is to propose a concise working name for each frame based on the concepts it contains.
+
+NAMING RULES:
+- Names should be 2–5 words, descriptive, and analytically neutral
+- Names should capture what unifies the cluster's concepts, not just list them
+- Avoid value-laden framing — these are analytical labels, not judgements
+- Also provide a one-sentence description of what this frame of reference represents
+
+Return ONLY valid JSON — no preamble, no markdown:
+[
+  { "cluster": 1, "name": "proposed frame name", "description": "one sentence description" }
+]`,
+      `Here are the concept clusters identified in the corpus. Propose working names for each frame:\n\n${clusterSummary}`,
+      2048
+    );
+
+    const names = repairJSON(response);
+    renderNamingInterface(clusters, names, repDocs);
+
+  } catch (err) {
+    renderNamingInterface(clusters, null, repDocs);
+    showError('Frame naming API call failed: ' + err.message + ' — you can still enter names manually below');
+  }
+}
+
+function findRepresentativeDocuments(clusters, assignments) {
+  // For each cluster, find documents whose binary profile best matches the cluster's concepts
+  const repDocs = {};
+  const nDocs   = binaryMatrix.length;
+
+  Object.entries(clusters).forEach(([cId, items]) => {
+    const clusterConceptIdxs = items.map(item => dtmData.concepts.indexOf(item.concept));
+
+    // Score each document: sum of binary values for concepts in this cluster
+    const docScores = dtmData.docs.map((doc, di) => {
+      const score = clusterConceptIdxs.reduce((s, ci) => s + (binaryMatrix[di][ci] || 0), 0);
+      return { doc, score };
+    });
+
+    repDocs[cId] = docScores.sort((a, b) => b.score - a.score).slice(0, 3);
+  });
+
+  return repDocs;
+}
+
+function renderNamingInterface(clusters, llmNames, repDocs) {
+  const body = document.getElementById('naming-body');
+  const sortedClusters = Object.entries(clusters).sort((a,b) => parseInt(a[0]) - parseInt(b[0]));
+
+  let html = `
+    <p style="font-family:var(--serif);font-size:0.85rem;color:var(--ink-mid);margin-bottom:1.5rem;">
+      Working names have been proposed by the LLM based on the core concepts in each cluster. Review each against the concept list and the representative documents, and revise as needed. Frame names should be analytically neutral descriptions of the conceptual configuration, not value judgements.
+    </p>
+    <div class="frame-naming-grid">`;
+
+  sortedClusters.forEach(([cId, items], idx) => {
+    const frameClass = `frame-${cId}`;
+    const llmName    = llmNames ? (llmNames.find(n => n.cluster === parseInt(cId)+1) || {}) : {};
+    const topConcepts = items.sort((a,b) => b.total - a.total).slice(0, 6).map(x => x.concept);
+    const reps = (repDocs[cId] || []).slice(0, 3);
+
+    html += `
+      <div class="frame-name-row">
+        <div>
+          <div class="frame-badge ${frameClass}">Cluster ${parseInt(cId)+1}</div>
+          <div style="margin-top:0.75rem;">
+            ${topConcepts.map(c => `<span class="concept-tag ${frameClass}" style="display:inline-block;margin:0.1rem;">${escHtml(c)}</span>`).join('')}
+          </div>
+        </div>
+        <div>
+          <label style="display:block;font-size:0.72rem;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--ink-mid);margin-bottom:0.35rem;">Frame name</label>
+          <input class="frame-name-input frame-${cId}-input" type="text" id="frame-name-${cId}"
+            value="${escHtml(llmName.name || '')}" placeholder="Enter frame name…">
+          ${llmName.description ? `<div class="frame-llm-name" style="margin-top:0.35rem;">${escHtml(llmName.description)}</div>` : ''}
+        </div>
+        <div>
+          <label style="display:block;font-size:0.72rem;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--ink-mid);margin-bottom:0.35rem;">Representative documents</label>
+          <div class="rep-docs-list">
+            ${reps.map(r => `
+              <div class="rep-doc-item">
+                <span class="rep-doc-score">${r.score}</span>
+                <span class="rep-doc-name">${escHtml(r.doc.name)}</span>
+              </div>`).join('')}
+          </div>
+        </div>
+      </div>`;
+  });
+
+  html += `</div>
+    <div class="btn-row" style="margin-top:1.5rem;">
+      <button class="btn btn-success" onclick="exportFinalResults()">↓ Export final frame analysis</button>
+    </div>`;
+
+  body.innerHTML = html;
+  markStepDone('44');
+}
+
+function exportFinalResults() {
+  const { assignments } = clusterResult;
+  const concepts  = dtmData.concepts;
+  const clusters  = {};
+  assignments.forEach((c, i) => {
+    if (!clusters[c]) clusters[c] = [];
+    clusters[c].push(concepts[i]);
+  });
+
+  const frameNames = {};
+  Object.keys(clusters).forEach(cId => {
+    const input = document.getElementById(`frame-name-${cId}`);
+    frameNames[cId] = input ? input.value.trim() || `Frame ${parseInt(cId)+1}` : `Frame ${parseInt(cId)+1}`;
+  });
+
+  const lines = [
+    '# CORRELATING RESONANCE — FRAME ANALYSIS RESULTS',
+    `# Generated: ${new Date().toLocaleString()}`,
+    `# Clusters: ${clusterResult.n_clusters} · Explained variance: ${(clusterResult.explained_variance*100).toFixed(1)}%`,
+    '#',
+    'Frame_Number,Frame_Name,Concept',
+  ];
+
+  Object.entries(clusters).sort((a,b) => parseInt(a[0])-parseInt(b[0])).forEach(([cId, conceptList]) => {
+    const name = frameNames[cId];
+    conceptList.forEach(c => {
+      lines.push([parseInt(cId)+1, csvCell(name), csvCell(c)].join(','));
+    });
+  });
+
+  download(`CR_FrameAnalysis_${today()}.csv`, lines.join('\n'), 'text/csv');
+
+  // Also export document-frame assignments
+  const docLines = [
+    '# CORRELATING RESONANCE — DOCUMENT FRAME SCORES',
+    `# Generated: ${new Date().toLocaleString()}`,
+    '#',
+    ['Doc_ID', 'Filename', ...Object.entries(frameNames).sort((a,b)=>parseInt(a[0])-parseInt(b[0])).map(([cId,n]) => csvCell(`Frame${parseInt(cId)+1}_${n}`))].join(',')
+  ];
+
+  dtmData.docs.forEach((doc, di) => {
+    const clusterConceptIdxs = {};
+    assignments.forEach((c, ci) => {
+      if (!clusterConceptIdxs[c]) clusterConceptIdxs[c] = [];
+      clusterConceptIdxs[c].push(ci);
+    });
+    const frameScores = Object.keys(clusters).sort((a,b)=>parseInt(a)-parseInt(b)).map(cId => {
+      const idxs = clusterConceptIdxs[cId] || [];
+      return idxs.reduce((s, ci) => s + (binaryMatrix[di][ci] || 0), 0);
+    });
+    docLines.push([csvCell(doc.id), csvCell(doc.name), ...frameScores].join(','));
+  });
+
+  setTimeout(() => {
+    download(`CR_DocumentFrameScores_${today()}.csv`, docLines.join('\n'), 'text/csv');
+  }, 500);
+}
+
+// ── Step state helpers ────────────────────────────────────────────────
+function markStepDone(id) {
+  document.getElementById(`num-${id}`).classList.add('done');
+  document.getElementById(`num-${id}`).classList.remove('active');
+}
+function markStepActive(id) {
+  document.getElementById(`num-${id}`).classList.add('active');
+}
+function resetAll() {
+  dtmData = binaryMatrix = ttmData = clusterResult = null;
+  ['41','42','43','44'].forEach(id => {
+    document.getElementById(`num-${id}`).className = 'step-num';
+  });
+  document.getElementById('bin-waiting').style.display  = 'block';
+  document.getElementById('bin-controls').style.display = 'none';
+  document.getElementById('bin-status').textContent     = '';
+  document.getElementById('ttm-body').innerHTML    = '<p style="font-family:var(--serif);font-style:italic;font-size:0.82rem;color:var(--ink-light);">Waiting for binarisation…</p>';
+  document.getElementById('cluster-body').innerHTML = '<p style="font-family:var(--serif);font-style:italic;font-size:0.82rem;color:var(--ink-light);">Waiting for TTM construction…</p>';
+  document.getElementById('naming-body').innerHTML   = '<p style="font-family:var(--serif);font-style:italic;font-size:0.82rem;color:var(--ink-light);">Waiting for confirmed cluster structure…</p>';
+  document.getElementById('ttm-actions').innerHTML  = '';
+  document.getElementById('error-display').innerHTML = '';
+  // Reset heatmap canvas
+  const canvas = document.getElementById('dtm-heatmap');
+  if (canvas) { const ctx = canvas.getContext('2d'); ctx.clearRect(0, 0, canvas.width, canvas.height); }
+}
+
+// ── Utilities ─────────────────────────────────────────────────────────
+function parseCSVRow(line) {
+  const cells = []; let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') { if (inQ && line[i+1] === '"') { cur += '"'; i++; } else inQ = !inQ; }
+    else if (ch === ',' && !inQ) { cells.push(cur); cur = ''; }
+    else cur += ch;
+  }
+  cells.push(cur); return cells;
+}
+
+function fixJSONStrings(text) {
+  let result = '', inString = false, escaped = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (escaped) { result += ch; escaped = false; continue; }
+    if (ch === '\\' && inString) { result += ch; escaped = true; continue; }
+    if (ch === '"') { result += ch; inString = !inString; continue; }
+    if (inString) {
+      if (ch === '\n' || ch === '\r' || ch === '\t') { result += ' '; continue; }
+      if (ch.charCodeAt(0) < 0x20) continue;
+    }
+    result += ch;
+  }
+  return result;
+}
+
+function repairJSON(raw) {
+  const clean = fixJSONStrings(raw.replace(/```json|```/g, '').trim());
+  try { return JSON.parse(clean); } catch (_) {}
+  const s = clean.indexOf('['), e = clean.lastIndexOf(']');
+  if (s !== -1 && e !== -1 && e > s) { try { return JSON.parse(clean.slice(s, e+1)); } catch (_) {} }
+  const s2 = clean.indexOf('{'), e2 = clean.lastIndexOf('}');
+  if (s2 !== -1 && e2 !== -1 && e2 > s2) { try { return JSON.parse(clean.slice(s2, e2+1)); } catch (_) {} }
+  throw new Error('Could not parse JSON response');
+}
+
+async function callAPI(system, user, maxTokens = 2048) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': API_KEY,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, system, messages: [{ role: 'user', content: user }] })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || `API error ${res.status}`);
+  }
+  const data = await res.json();
+  return data.content.map(b => b.text || '').join('');
+}
+
+function csvCell(val) {
+  const s = String(val || '');
+  return (s.includes(',') || s.includes('"') || s.includes('\n')) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+function today() { return new Date().toISOString().slice(0, 10); }
+
+function download(filename, content, type) {
+  const blob = new Blob([content], { type });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function showError(msg) {
+  document.getElementById('error-display').innerHTML =
+    `<div class="error-box"><strong>Error</strong>${escHtml(msg)}</div>`;
+}
+function clearError() { document.getElementById('error-display').innerHTML = ''; }
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+
+<nav class="cr-bottom-nav">
+  <a href="cr_phase3_1_coding.html" class="cr-bottom-btn">← Phase 3 · Coding</a>
+  <div class="cr-bottom-center">Phase 4 of 4 · Cluster Analysis</div>
+  <a href="index.html" class="cr-bottom-btn ghost">Home →</a>
+</nav>
+
+</body>
+</html>
