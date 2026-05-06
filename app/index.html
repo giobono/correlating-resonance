@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Correlating Resonance — GitHub Source Mirror</title>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600&family=JetBrains+Mono:wght@400;500&family=Barlow+Condensed:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1814;
+    --ink-mid: #4a4640;
+    --ink-light: #9a9490;
+    --paper: #f7f4ef;
+    --paper-mid: #ede9e2;
+    --paper-dark: #ddd8cf;
+    --accent: #8b3a2a;
+    --accent-light: #c4735f;
+    --accent-dim: #f0e0da;
+    --rule: #d0cbc2;
+    --mono: 'JetBrains Mono', monospace;
+    --serif: 'Spectral', Georgia, serif;
+    --cond: 'Barlow Condensed', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    line-height: 1.7;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Grain overlay ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 100;
+    opacity: 0.6;
+  }
+
+  /* ── Hero ── */
+  .hero {
+    flex: 1;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    border-bottom: 2px solid var(--ink);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Manuscript rule lines */
+  .hero::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent,
+      transparent 39px,
+      var(--rule) 39px,
+      var(--rule) 40px
+    );
+    opacity: 0.35;
+    pointer-events: none;
+  }
+
+  .hero-nav {
+    padding: 2rem 4rem;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    position: relative;
+    z-index: 2;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .nav-wordmark {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-light);
+  }
+
+  .nav-wordmark em {
+    font-style: normal;
+    color: var(--accent);
+  }
+
+  .nav-meta {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--ink-light);
+    letter-spacing: 0.08em;
+  }
+
+  .hero-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 5rem 4rem 4rem;
+    position: relative;
+    z-index: 2;
+    max-width: 900px;
+  }
+
+  .hero-eyebrow {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .hero-eyebrow::before {
+    content: '';
+    width: 2rem;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  .hero-title {
+    font-family: var(--cond);
+    font-weight: 300;
+    font-size: clamp(3.5rem, 8vw, 7rem);
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    margin-bottom: 0.15em;
+  }
+
+  .hero-title em {
+    font-style: italic;
+    font-weight: 300;
+    color: var(--accent);
+  }
+
+  .hero-subtitle {
+    font-family: var(--cond);
+    font-weight: 300;
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    color: var(--ink-mid);
+    letter-spacing: 0.02em;
+    margin-bottom: 2.5rem;
+    font-style: italic;
+  }
+
+  .hero-description {
+    font-size: 1.05rem;
+    color: var(--ink-mid);
+    max-width: 640px;
+    line-height: 1.75;
+    margin-bottom: 1.25rem;
+  }
+
+  .hero-description strong {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2rem;
+    margin-top: 2rem;
+  }
+
+  .hero-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: var(--ink);
+    color: var(--paper);
+    text-decoration: none;
+    padding: 0.85rem 2rem;
+    font-family: var(--cond);
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: background 0.2s, gap 0.2s;
+    border-radius: 2px;
+  }
+
+  .hero-cta:hover { background: var(--accent); gap: 1.25rem; }
+
+  .hero-cta-arrow { font-size: 1.1rem; }
+
+  .hero-secondary {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .hero-secondary a {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    color: var(--ink-mid);
+    text-decoration: none;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 0.15rem;
+    transition: color 0.2s, border-color 0.2s;
+    width: fit-content;
+  }
+
+  .hero-secondary a:hover {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  .hero-footer {
+    padding: 1.5rem 4rem;
+    border-top: 1px solid var(--rule);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 3rem;
+    position: relative;
+    z-index: 2;
+    flex-wrap: wrap;
+  }
+
+  .hero-footer-label {
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-light);
+  }
+
+  /* ── Footer ── */
+  footer {
+    padding: 2rem 4rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 1rem;
+    background: var(--paper);
+    position: relative;
+    z-index: 2;
+  }
+
+  .footer-wordmark {
+    font-family: var(--cond);
+    font-weight: 600;
+    font-size: 1.1rem;
+    letter-spacing: 0.04em;
+    color: var(--ink);
+  }
+
+  .footer-meta {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    color: var(--ink-light);
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 720px) {
+    .hero-nav,
+    .hero-body,
+    .hero-footer,
+    footer {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+    .hero-actions { flex-direction: column; align-items: flex-start; gap: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+
+  <!-- Top nav -->
+  <div class="hero-nav">
+    <div class="nav-wordmark">Correlating <em>Resonance</em></div>
+    <div class="nav-meta">github source · v0.9</div>
+  </div>
+
+  <!-- Hero body -->
+  <div class="hero-body">
+    <div class="hero-eyebrow">GitHub source mirror</div>
+    <h1 class="hero-title">Correlating <em>Resonance</em></h1>
+    <p class="hero-subtitle">the working application lives elsewhere</p>
+
+    <p class="hero-description">
+      This page is served from the public source repository on GitHub. The interactive application <strong>requires an API key</strong>, which is configured only at the production deployment.
+    </p>
+    <p class="hero-description">
+      To use the methodology, visit the working version at <strong>ebono.com.au/corres</strong>. The source code, methodology specification, and version history remain available here for inspection.
+    </p>
+
+    <div class="hero-actions">
+      <a href="https://ebono.com.au/corres" class="hero-cta">
+        Open the working application
+        <span class="hero-cta-arrow">→</span>
+      </a>
+      <div class="hero-secondary">
+        <a href="https://github.com/giobono/correlating-resonance/tree/main/docs">Methodology specification ↗</a>
+        <a href="https://github.com/giobono/correlating-resonance">Source repository ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hero footer strip -->
+  <div class="hero-footer">
+    <div class="hero-footer-label">No API key configured at this deployment</div>
+    <div class="hero-footer-label">Redirect target — ebono.com.au/corres</div>
+  </div>
+
+</div>
+
+<!-- Page footer -->
+<footer>
+  <div class="footer-wordmark">Correlating Resonance</div>
+  <div class="footer-meta">Frame Analysis Methodology · Built on the Anthropic API</div>
+</footer>
+
+</body>
+</html>

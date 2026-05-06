@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Correlating Resonance — Phase 1: Typology Development</title>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,300;1,400&family=JetBrains+Mono:wght@400;500&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+  :root {
+    --ink: #1a1814;
+    --ink-mid: #4a4640;
+    --ink-light: #9a9490;
+    --paper: #f7f4ef;
+    --paper-mid: #ede9e2;
+    --paper-dark: #ddd8cf;
+    --accent: #8b3a2a;
+    --accent-light: #c4735f;
+    --success: #2a6b4a;
+    --warning: #7a5c1a;
+    --warning-bg: #fdf5e0;
+    --warning-border: #e8d090;
+    --rule: #d0cbc2;
+    --mono: 'JetBrains Mono', monospace;
+    --serif: 'Spectral', Georgia, serif;
+    --sans: 'Barlow', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  header {
+    border-bottom: 2px solid var(--ink);
+    padding: 1.75rem 3rem 1.5rem;
+    display: flex;
+    align-items: baseline;
+    gap: 2rem;
+    flex-wrap: wrap;
+  }
+
+  .logo {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: 1.4rem;
+    letter-spacing: -0.02em;
+  }
+
+  .logo em { font-style: italic; color: var(--accent); }
+
+  .phase-tag {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--paper);
+    background: var(--ink);
+    padding: 0.25rem 0.65rem;
+    border-radius: 2px;
+  }
+
+  .nav-link {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-light);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+  }
+
+  .nav-link:hover { color: var(--accent); border-color: var(--accent); }
+
+  /* ── Main layout ── */
+  .workspace {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2.5rem 3rem;
+  }
+
+  .section-head {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink-light);
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .section-head::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--rule);
+  }
+
+  /* ── Upload grid ── */
+  .upload-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+  }
+
+  .doc-slot {
+    border: 2px dashed var(--paper-dark);
+    border-radius: 4px;
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+    overflow: hidden;
+    background: white;
+    padding: 1rem 0.75rem;
+    text-align: center;
+  }
+
+  .doc-slot:hover, .doc-slot.drag-over {
+    border-color: var(--accent-light);
+    background: #fdf9f7;
+  }
+
+  .doc-slot.filled {
+    border-style: solid;
+    border-color: var(--success);
+    background: #f0f7f3;
+    cursor: default;
+  }
+
+  .doc-slot.processing {
+    border-color: var(--accent);
+    background: #fdf5f3;
+  }
+
+  .doc-slot.done {
+    border-color: var(--success);
+    background: #f0f7f3;
+  }
+
+  .doc-slot input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .doc-slot.filled input[type="file"],
+  .doc-slot.processing input[type="file"],
+  .doc-slot.done input[type="file"] {
+    pointer-events: none;
+  }
+
+  .slot-num {
+    font-family: var(--mono);
+    font-size: 1.2rem;
+    font-weight: 500;
+    color: var(--paper-dark);
+    line-height: 1;
+  }
+
+  .doc-slot.filled .slot-num,
+  .doc-slot.done .slot-num { color: var(--success); }
+  .doc-slot.processing .slot-num { color: var(--accent); }
+
+  .slot-label {
+    font-size: 0.72rem;
+    color: var(--ink-light);
+    line-height: 1.3;
+    word-break: break-all;
+  }
+
+  .doc-slot.filled .slot-label { color: var(--success); font-weight: 500; word-break: break-word; }
+
+  .slot-status {
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .slot-clear {
+    position: absolute;
+    top: 0.35rem;
+    right: 0.35rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--ink-light);
+    font-size: 0.8rem;
+    line-height: 1;
+    padding: 0.15rem;
+    z-index: 2;
+  }
+
+  .slot-clear:hover { color: var(--accent); }
+
+  .slot-spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--paper-dark);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Controls ── */
+  .controls-row {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+  }
+
+  .run-btn {
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    border-radius: 3px;
+    padding: 0.8rem 2rem;
+    font-family: var(--sans);
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+  }
+
+  .run-btn:hover:not(:disabled) { background: var(--accent); }
+  .run-btn:active:not(:disabled) { transform: translateY(1px); }
+  .run-btn:disabled { background: var(--ink-light); cursor: not-allowed; }
+
+  .doc-count-note {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 0.82rem;
+    color: var(--ink-light);
+  }
+
+  /* ── Progress pipeline ── */
+  .pipeline {
+    background: white;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    display: none;
+  }
+
+  .pipeline.active { display: block; }
+
+  .pipeline-title {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-mid);
+    margin-bottom: 1rem;
+  }
+
+  .pipeline-steps {
+    display: flex;
+    gap: 0;
+    align-items: stretch;
+  }
+
+  .pipe-step {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    position: relative;
+  }
+
+  .pipe-step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 14px;
+    right: -50%;
+    width: 100%;
+    height: 2px;
+    background: var(--paper-dark);
+    z-index: 0;
+  }
+
+  .pipe-step.done:not(:last-child)::after { background: var(--success); }
+  .pipe-step.active:not(:last-child)::after { background: var(--accent-light); }
+
+  .pipe-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid var(--paper-dark);
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    font-weight: 500;
+    color: var(--ink-light);
+    z-index: 1;
+    transition: all 0.3s;
+  }
+
+  .pipe-step.done .pipe-dot {
+    background: var(--success);
+    border-color: var(--success);
+    color: white;
+  }
+
+  .pipe-step.active .pipe-dot {
+    border-color: var(--accent);
+    color: var(--accent);
+    animation: pulse-dot 1s ease-in-out infinite;
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(139,58,42,0.3); }
+    50% { box-shadow: 0 0 0 5px rgba(139,58,42,0); }
+  }
+
+  .pipe-label {
+    font-size: 0.68rem;
+    color: var(--ink-light);
+    text-align: center;
+    line-height: 1.3;
+  }
+
+  .pipe-step.done .pipe-label { color: var(--success); }
+  .pipe-step.active .pipe-label { color: var(--accent); font-weight: 500; }
+
+  /* ── Results ── */
+  .results-area { display: none; }
+  .results-area.active { display: block; }
+
+  .results-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .results-summary {
+    font-family: var(--serif);
+    font-size: 1.05rem;
+  }
+
+  .results-summary em { font-style: italic; color: var(--accent); }
+
+  .results-counts {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .count-chip {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    padding: 0.25rem 0.6rem;
+    border-radius: 2px;
+    text-transform: uppercase;
+  }
+
+  .count-total { background: var(--paper-mid); color: var(--ink-mid); }
+  .count-ambig { background: var(--warning-bg); color: var(--warning); border: 1px solid var(--warning-border); }
+
+  .export-btn {
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    border-radius: 3px;
+    padding: 0.6rem 1.25rem;
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .export-btn:hover { background: var(--success); }
+
+  /* ── Term table ── */
+  .term-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+  }
+
+  .term-table thead tr { border-bottom: 2px solid var(--ink); }
+
+  .term-table th {
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-mid);
+    padding: 0.6rem 1rem 0.6rem 0;
+    text-align: left;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .term-table tbody tr {
+    border-bottom: 1px solid var(--paper-mid);
+    transition: background 0.1s;
+  }
+
+  .term-table tbody tr:hover { background: #fdfaf7; }
+  .term-table tbody tr.ambiguous { background: var(--warning-bg); }
+  .term-table tbody tr.ambiguous:hover { background: #fdf0d0; }
+
+  .term-table td {
+    padding: 0.65rem 1rem 0.65rem 0;
+    vertical-align: top;
+    line-height: 1.4;
+  }
+
+  .term-name {
+    font-weight: 600;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+
+  .term-def {
+    color: var(--ink-mid);
+    font-size: 0.8rem;
+    max-width: 380px;
+  }
+
+  .ambig-flag {
+    display: inline-block;
+    background: var(--warning-bg);
+    color: var(--warning);
+    border: 1px solid var(--warning-border);
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.1rem 0.4rem;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+
+  .ambig-note {
+    font-size: 0.74rem;
+    color: var(--warning);
+    font-style: italic;
+    font-family: var(--serif);
+    max-width: 280px;
+    line-height: 1.4;
+    margin-top: 0.2rem;
+  }
+
+  .source-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+
+  .source-chip {
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    background: var(--paper-mid);
+    color: var(--ink-light);
+    padding: 0.1rem 0.35rem;
+    border-radius: 2px;
+  }
+
+  /* ── Filter bar ── */
+  .filter-bar {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .filter-btn {
+    background: none;
+    border: 1px solid var(--paper-dark);
+    border-radius: 2px;
+    padding: 0.35rem 0.75rem;
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-light);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .filter-btn:hover, .filter-btn.active {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
+
+  .filter-btn.ambig-filter.active {
+    background: var(--warning);
+    border-color: var(--warning);
+    color: white;
+  }
+
+  .search-input {
+    border: 1px solid var(--paper-dark);
+    border-radius: 2px;
+    padding: 0.35rem 0.75rem;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--ink);
+    background: white;
+    outline: none;
+    width: 200px;
+    transition: border-color 0.15s;
+  }
+
+  .search-input:focus { border-color: var(--ink-mid); }
+  .search-input::placeholder { color: var(--ink-light); }
+
+  /* ── Error ── */
+  .error-box {
+    background: #fdf0ee;
+    border: 1px solid #e8b4aa;
+    border-radius: 3px;
+    padding: 1rem 1.25rem;
+    color: var(--accent);
+    font-size: 0.82rem;
+    margin-bottom: 1rem;
+  }
+
+  .error-box strong {
+    display: block;
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 0.25rem;
+  }
+
+  /* ── Instructions callout ── */
+  .callout {
+    background: white;
+    border-left: 3px solid var(--accent);
+    padding: 1rem 1.25rem;
+    margin-bottom: 2rem;
+    font-family: var(--serif);
+    font-size: 0.88rem;
+    line-height: 1.7;
+    color: var(--ink-mid);
+  }
+
+  .callout strong { color: var(--ink); font-family: var(--sans); font-size: 0.82rem; letter-spacing: 0.03em; }
+
+  @media (max-width: 800px) {
+    .upload-grid { grid-template-columns: repeat(3, 1fr); }
+    .workspace { padding: 1.5rem; }
+    header { padding: 1.25rem 1.5rem; }
+  }
+
+  @media (max-width: 500px) {
+    .upload-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  /* ── Shared navigation ── */
+  .cr-nav { border-bottom: 2px solid var(--ink); padding: 1rem 2rem; display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
+  .cr-nav-logo { font-family: var(--serif); font-weight: 300; font-size: 1.1rem; letter-spacing: -0.02em; text-decoration: none; color: var(--ink); flex-shrink: 0; }
+  .cr-nav-logo em { font-style: italic; color: var(--accent); }
+  .cr-phases { display: flex; align-items: center; gap: 0; }
+  .cr-phase-link { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.07em; text-transform: uppercase; text-decoration: none; padding: 0.3rem 0.65rem; border: 1px solid var(--paper-dark); border-right: none; color: var(--ink-light); transition: background 0.15s, color 0.15s; white-space: nowrap; }
+  .cr-phase-link:first-child { border-radius: 3px 0 0 3px; }
+  .cr-phase-link:last-child { border-right: 1px solid var(--paper-dark); border-radius: 0 3px 3px 0; }
+  .cr-phase-link:hover { background: var(--paper-mid); color: var(--ink); }
+  .cr-phase-link.current { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .cr-nav-home { margin-left: auto; font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none; color: var(--ink-light); border-bottom: 1px solid transparent; transition: color 0.15s, border-color 0.15s; }
+  .cr-nav-home:hover { color: var(--accent); border-color: var(--accent); }
+  .cr-bottom-nav { border-top: 1px solid var(--rule); padding: 1.5rem 2rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-top: 3rem; background: white; }
+  .cr-bottom-btn { font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none; color: var(--ink-mid); padding: 0.5rem 1rem; border: 1px solid var(--paper-dark); border-radius: 3px; transition: all 0.15s; }
+  .cr-bottom-btn:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .cr-bottom-btn.ghost { opacity: 0.25; pointer-events: none; }
+  .cr-bottom-center { font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-light); text-align: center; }
+</style>
+</head>
+<body>
+
+<header class="cr-nav">
+  <a href="index.html" class="cr-nav-logo"><em>Correlating Resonance</em></a>
+  <div class="cr-phases">
+    <a href="cr_phase1_typology.html" class="cr-phase-link current">Phase 1 · Typology</a>
+    <a href="cr_phase2_saturation.html" class="cr-phase-link">Phase 2 · Saturation</a>
+    <a href="cr_phase3_1_coding.html" class="cr-phase-link">Phase 3 · Coding</a>
+    <a href="cr_phase4_analysis.html" class="cr-phase-link">Phase 4 · Analysis</a>
+  </div>
+  <a href="index.html" class="cr-nav-home">Home</a>
+</header>
+
+<div class="workspace">
+
+  <div class="callout">
+    <strong>What this does</strong><br>
+    Upload 5 randomly selected documents from your corpus. The application will process each document independently — extracting candidate concepts with neutral definitions and flagging terms that carry multiple possible meanings. A consolidation pass then produces a single unified candidate term list ready for your review. Download the list, edit it in a spreadsheet, and return to begin Phase 2.
+  </div>
+
+  <div class="section-head">Upload Documents (up to 5)</div>
+
+  <div class="upload-grid" id="upload-grid">
+    <!-- Slots generated by JS -->
+  </div>
+
+  <div class="controls-row">
+    <button class="run-btn" id="run-btn" disabled>Generate candidate term list →</button>
+    <span class="doc-count-note" id="doc-count-note">Upload at least 1 document to begin (5 recommended)</span>
+  </div>
+
+  <div id="error-display"></div>
+
+  <!-- Progress pipeline -->
+  <div class="pipeline" id="pipeline">
+    <div class="pipeline-title">Processing pipeline</div>
+    <div class="pipeline-steps" id="pipeline-steps"></div>
+  </div>
+
+  <!-- Results -->
+  <div class="results-area" id="results-area">
+    <div class="section-head">Candidate Term List</div>
+
+    <div class="results-toolbar">
+      <div>
+        <div class="results-summary">Phase 1 complete — <em id="term-count-label">0 terms</em> identified</div>
+        <div class="results-counts" style="margin-top:0.4rem;">
+          <span class="count-chip count-total" id="chip-total">0 total</span>
+          <span class="count-chip count-ambig" id="chip-ambig">0 flagged ambiguous</span>
+        </div>
+      </div>
+      <button class="export-btn" id="export-btn">↓ Download CSV for review</button>
+    </div>
+
+    <div class="filter-bar">
+      <button class="filter-btn active" id="filter-all" onclick="setFilter('all')">All terms</button>
+      <button class="filter-btn ambig-filter" id="filter-ambig" onclick="setFilter('ambiguous')">Ambiguous only</button>
+      <input class="search-input" id="search-input" placeholder="Search terms…" oninput="renderTable()">
+    </div>
+
+    <table class="term-table" id="term-table">
+      <thead>
+        <tr>
+          <th style="width:160px;">Term</th>
+          <th>Definition (coding rule)</th>
+          <th style="width:180px;">Ambiguity</th>
+          <th style="width:120px;">Source docs</th>
+        </tr>
+      </thead>
+      <tbody id="term-tbody"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+// ── Config ─────────────────────────────────────────────────────────
+const API_KEY = 'YOUR_API_KEY_HERE';
+const MODEL   = 'claude-sonnet-4-20250514';
+const MAX_DOCS = 5;
+
+// ── State ───────────────────────────────────────────────────────────
+let slots = Array(MAX_DOCS).fill(null); // {name, text}
+let allTerms = [];
+let activeFilter = 'all';
+
+// ── PDF.js ──────────────────────────────────────────────────────────
+if (window.pdfjsLib) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+// ── Build upload slots ──────────────────────────────────────────────
+const grid = document.getElementById('upload-grid');
+
+for (let i = 0; i < MAX_DOCS; i++) {
+  const slot = document.createElement('div');
+  slot.className = 'doc-slot';
+  slot.id = `slot-${i}`;
+  slot.innerHTML = `
+    <input type="file" accept=".txt,.pdf" data-idx="${i}">
+    <div class="slot-num">${i + 1}</div>
+    <div class="slot-label" id="slot-label-${i}">Drop file or click</div>
+  `;
+  slot.addEventListener('dragover', e => { e.preventDefault(); slot.classList.add('drag-over'); });
+  slot.addEventListener('dragleave', () => slot.classList.remove('drag-over'));
+  slot.addEventListener('drop', e => {
+    e.preventDefault();
+    slot.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(i, file);
+  });
+  slot.querySelector('input').addEventListener('change', e => {
+    if (e.target.files[0]) handleFile(i, e.target.files[0]);
+  });
+  grid.appendChild(slot);
+}
+
+// ── File handling ───────────────────────────────────────────────────
+async function handleFile(idx, file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  let text = '';
+
+  try {
+    if (ext === 'txt') {
+      text = await file.text();
+    } else if (ext === 'pdf') {
+      text = await extractPdfText(file);
+    } else {
+      showError('Please upload .txt or .pdf files only.');
+      return;
+    }
+  } catch (err) {
+    showError(`Could not read ${file.name}: ${err.message}`);
+    return;
+  }
+
+  slots[idx] = { name: file.name, text: text.substring(0, 8000) };
+  setSlotFilled(idx, file.name);
+  updateControls();
+}
+
+async function extractPdfText(file) {
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  let out = '';
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const content = await page.getTextContent();
+    out += content.items.map(i => i.str).join(' ') + '\n\n';
+  }
+  return out.trim();
+}
+
+function setSlotFilled(idx, name) {
+  const slot = document.getElementById(`slot-${idx}`);
+  slot.className = 'doc-slot filled';
+
+  // Remove old clear button if present
+  const old = slot.querySelector('.slot-clear');
+  if (old) old.remove();
+
+  slot.querySelector('.slot-num').textContent = '✓';
+  const label = document.getElementById(`slot-label-${idx}`);
+  label.textContent = name.length > 20 ? name.substring(0, 18) + '…' : name;
+
+  const clearBtn = document.createElement('button');
+  clearBtn.className = 'slot-clear';
+  clearBtn.textContent = '✕';
+  clearBtn.title = 'Remove';
+  clearBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    slots[idx] = null;
+    resetSlot(idx);
+    updateControls();
+  });
+  slot.appendChild(clearBtn);
+}
+
+function resetSlot(idx) {
+  const slot = document.getElementById(`slot-${idx}`);
+  slot.className = 'doc-slot';
+  slot.querySelector('.slot-num').textContent = String(idx + 1);
+  document.getElementById(`slot-label-${idx}`).textContent = 'Drop file or click';
+  const cb = slot.querySelector('.slot-clear');
+  if (cb) cb.remove();
+}
+
+function updateControls() {
+  const count = slots.filter(Boolean).length;
+  const runBtn = document.getElementById('run-btn');
+  const note = document.getElementById('doc-count-note');
+  runBtn.disabled = count === 0;
+  if (count === 0) note.textContent = 'Upload at least 1 document to begin (5 recommended)';
+  else if (count < 5) note.textContent = `${count} document${count>1?'s':''} loaded — 5 recommended for Phase 1`;
+  else note.textContent = '5 documents loaded — ready to generate candidate term list';
+}
+
+// ── Pipeline UI ─────────────────────────────────────────────────────
+function buildPipeline(docNames) {
+  const steps = document.getElementById('pipeline-steps');
+  steps.innerHTML = '';
+  const labels = [...docNames.map((n,i) => `Doc ${i+1}`), 'Consolidate'];
+  labels.forEach((label, i) => {
+    const div = document.createElement('div');
+    div.className = 'pipe-step';
+    div.id = `pipe-step-${i}`;
+    div.innerHTML = `
+      <div class="pipe-dot" id="pipe-dot-${i}">${i === labels.length-1 ? '∑' : i+1}</div>
+      <div class="pipe-label">${label}</div>
+    `;
+    steps.appendChild(div);
+  });
+  document.getElementById('pipeline').classList.add('active');
+}
+
+function setPipeActive(i) {
+  document.getElementById(`pipe-step-${i}`).classList.add('active');
+}
+
+function setPipeDone(i) {
+  const step = document.getElementById(`pipe-step-${i}`);
+  step.classList.remove('active');
+  step.classList.add('done');
+  step.querySelector('.pipe-dot').textContent = '✓';
+}
+
+// ── Main run ────────────────────────────────────────────────────────
+document.getElementById('run-btn').addEventListener('click', runPhase1);
+
+async function runPhase1() {
+  clearError();
+  allTerms = [];
+  document.getElementById('results-area').classList.remove('active');
+
+  const activeDocs = slots.filter(Boolean);
+  buildPipeline(activeDocs.map(d => d.name));
+
+  document.getElementById('run-btn').disabled = true;
+  const termsByDoc = [];
+
+  // ── Sequential per-document extraction ──
+  for (let i = 0; i < activeDocs.length; i++) {
+    setPipeActive(i);
+
+    try {
+      const terms = await extractTermsFromDoc(activeDocs[i], i + 1, activeDocs.length);
+      termsByDoc.push({ docName: activeDocs[i].name, terms });
+      setPipeDone(i);
+    } catch (err) {
+      showError(`Error processing document ${i+1} (${activeDocs[i].name}): ${err.message}`);
+      document.getElementById('run-btn').disabled = false;
+      return;
+    }
+  }
+
+  // ── Consolidation pass ──
+  const consolidateIdx = activeDocs.length;
+  setPipeActive(consolidateIdx);
+
+  try {
+    allTerms = await consolidateTerms(termsByDoc);
+    setPipeDone(consolidateIdx);
+    showResults(allTerms);
+  } catch (err) {
+    showError(`Error during consolidation: ${err.message}`);
+  }
+
+  document.getElementById('run-btn').disabled = false;
+}
+
+// ── Text sanitisation ────────────────────────────────────────────────
+// Removes characters that cause LLMs to generate broken JSON
+function sanitiseText(text) {
+  return text
+    .replace(/[\u2018\u2019]/g, "'")   // smart single quotes → plain
+    .replace(/[\u201C\u201D]/g, '"')   // smart double quotes → plain
+    .replace(/[\u2013\u2014]/g, '-')   // en/em dash → hyphen
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, ' ') // control chars
+    .replace(/\\/g, '/')               // backslashes → forward slash
+    .trim();
+}
+
+// ── JSON string sanitiser ────────────────────────────────────────────
+// Walks the raw text character by character. Inside JSON string values,
+// replaces literal newlines, carriage returns, and tabs with a space,
+// and removes any other bare control characters. This fixes the most
+// common failure mode: LLMs embedding literal newlines in definition
+// strings, which produces "Unterminated string" parse errors.
+function fixJSONStrings(text) {
+  let result = '';
+  let inString = false;
+  let escaped = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (escaped) {
+      result += ch;
+      escaped = false;
+      continue;
+    }
+    if (ch === '\\' && inString) {
+      result += ch;
+      escaped = true;
+      continue;
+    }
+    if (ch === '"') {
+      result += ch;
+      inString = !inString;
+      continue;
+    }
+    if (inString) {
+      const code = ch.charCodeAt(0);
+      if (ch === '\n' || ch === '\r' || ch === '\t') {
+        result += ' '; // replace literal whitespace control chars with space
+        continue;
+      }
+      if (code < 0x20) {
+        continue; // drop other control characters silently
+      }
+    }
+    result += ch;
+  }
+  return result;
+}
+
+// ── JSON repair ──────────────────────────────────────────────────────
+// Attempts to extract a valid JSON array from a potentially broken response.
+// Strategy 1: fix control chars in strings, then parse.
+// Strategy 2: find the outermost [ ] and parse that substring.
+// Strategy 3: close a truncated array at the last complete object.
+// Strategy 4: extract individual complete objects one by one.
+function repairJSON(raw) {
+  // Strategy 1: fix string-internal control chars, then parse
+  const clean = fixJSONStrings(raw.replace(/```json|```/g, '').trim());
+  try { return JSON.parse(clean); } catch (_) {}
+
+  // Strategy 2: extract outermost array
+  const start = clean.indexOf('[');
+  const end   = clean.lastIndexOf(']');
+  if (start !== -1 && end !== -1 && end > start) {
+    try { return JSON.parse(clean.slice(start, end + 1)); } catch (_) {}
+  }
+
+  // Strategy 3: response truncated mid-stream — try closing the array
+  // Find the last complete object (ends with }) and close the array there
+  const lastBrace = clean.lastIndexOf('}');
+  if (lastBrace !== -1 && start !== -1) {
+    const truncationFix = clean.slice(start, lastBrace + 1) + ']';
+    try {
+      const result = JSON.parse(truncationFix);
+      console.warn(`JSON repair recovered truncated response: ${result.length} objects`);
+      return result;
+    } catch (_) {}
+  }
+
+  // Strategy 4: extract individual complete objects
+  const objects = [];
+  const objRe = /\{[^{}]*\}/g;
+  let match;
+  while ((match = objRe.exec(clean)) !== null) {
+    try {
+      const obj = JSON.parse(match[0]);
+      if (obj.term) objects.push(obj);
+    } catch (_) {}
+  }
+  if (objects.length > 0) {
+    console.warn(`JSON repair recovered ${objects.length} objects via object extraction`);
+    return objects;
+  }
+
+  throw new Error('Could not parse or repair JSON response from API');
+}
+
+// ── Per-document extraction prompt ──────────────────────────────────
+async function extractTermsFromDoc(doc, docNum, totalDocs) {
+  const system = `You are a research assistant applying the Correlating Resonance methodology for frame analysis in contested policy spaces.
+
+Your task is to perform open coding on a single document — extracting candidate concepts as a flat, non-hierarchical list. This is document ${docNum} of ${totalDocs} and is processed in complete isolation. You have no knowledge of what other documents contain.
+
+OPEN CODING RULES:
+1. Extract every substantive concept present in the document — do not filter for relevance at this stage. Include it if it is present.
+2. Write a neutral definition for each term as a coding rule — describe what to look for when coding, not what the concept means theoretically. The definition must be neutral: it should not presuppose how the concept is being used (positively, negatively, as a barrier, as a goal, etc.).
+3. Do NOT organise terms into categories or hierarchies. The list must be flat.
+4. Flag any term that appears to carry multiple possible meanings or roles in this document — for example, a term that appears both as a goal and as a barrier, or that could mean different things in different contexts. Set ambiguous to true and write a brief ambiguity note.
+5. Be inclusive rather than exclusive. Near-duplicates are acceptable at this stage — consolidation happens later.
+6. Exclude proper nouns (names of specific people, organisations, or places) unless they represent a category of actor that is analytically significant.
+
+CRITICAL JSON RULE: Do not use double quote characters (") within any string value. Use single quotes or rephrase to avoid them entirely. Unescaped double quotes inside strings will break the JSON.
+
+Return ONLY a valid JSON array — no preamble, no explanation, no markdown fences:
+[
+  {
+    "term": "term name in lowercase",
+    "definition": "neutral coding rule: include all references to X regardless of...",
+    "ambiguous": false,
+    "ambiguity_note": ""
+  }
+]`;
+
+  const safeText = sanitiseText(doc.text);
+
+  const user = `DOCUMENT: ${doc.name}
+
+${safeText}
+
+Extract all candidate concepts from this document as a flat JSON array. Every string value in the JSON must use only plain straight double quotes. Do not use smart quotes, apostrophes inside values, or any special punctuation that would break JSON parsing.`;
+
+  // First attempt — 4096 tokens to avoid truncation
+  let response = await callAPI(system, user, 4096);
+  try {
+    return repairJSON(response);
+  } catch (_) {}
+
+  // Retry with explicit JSON-safety warning and shorter document
+  console.warn(`JSON parse failed for doc ${docNum}, retrying with stricter prompt and shorter text…`);
+  const shorterUser = `DOCUMENT: ${doc.name}
+
+${sanitiseText(doc.text.substring(0, 6000))}
+
+Extract all candidate concepts from this document as a flat JSON array. Every string value must use only plain straight double quotes. Do not use apostrophes or special punctuation inside JSON string values — rephrase to avoid them. Aim for concise definitions (under 20 words each). Return no more than 40 terms.`;
+
+  response = await callAPI(system, shorterUser, 4096);
+  return repairJSON(response);
+}
+
+// ── Consolidation prompt ─────────────────────────────────────────────
+async function consolidateTerms(termsByDoc) {
+  const system = `You are a research assistant applying the Correlating Resonance methodology.
+
+You have received candidate term lists extracted independently from ${termsByDoc.length} documents. Your task is to consolidate these into a single unified candidate term list.
+
+CONSOLIDATION RULES:
+1. Merge clear duplicates — terms that refer to the same concept under different labels. Use the most precise or neutral label.
+2. Retain near-duplicates as separate entries if there is any analytical doubt about whether they are the same concept. Flag them as ambiguous with a note explaining the potential overlap.
+3. Do NOT delete terms because they appear in only one document — all terms are candidates at this stage.
+4. Write a single neutral definition for each consolidated term, synthesising across the source definitions.
+5. If a term was flagged as ambiguous in any source document, carry that flag forward. Add or synthesise the ambiguity note.
+6. Record which source documents each term appeared in using the document names provided.
+7. The output must remain flat and non-hierarchical.
+8. Exclude proper nouns unless analytically significant as a category.
+
+CRITICAL JSON RULE: Do not use double quote characters (") within any string value. Use single quotes or rephrase to avoid them entirely.
+
+Return ONLY a valid JSON array:
+[
+  {
+    "term": "term name in lowercase",
+    "definition": "neutral coding rule",
+    "ambiguous": false,
+    "ambiguity_note": "",
+    "source_docs": ["doc1.pdf", "doc2.txt"]
+  }
+]`;
+
+  const docSummaries = termsByDoc.map(d =>
+    `SOURCE: ${d.docName}\n${JSON.stringify(d.terms, null, 2)}`
+  ).join('\n\n---\n\n');
+
+  const user = `Consolidate these term lists into a single unified candidate term list:\n\n${docSummaries}`;
+
+  const response = await callAPI(system, user, 6000);
+  return repairJSON(response);
+}
+
+// ── API call ────────────────────────────────────────────────────────
+async function callAPI(system, user, maxTokens = 3000) {
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': API_KEY,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: maxTokens,
+      system,
+      messages: [{ role: 'user', content: user }]
+    })
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error?.message || `API error ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.content.map(b => b.text || '').join('');
+}
+
+// ── Results display ─────────────────────────────────────────────────
+function showResults(terms) {
+  const total  = terms.length;
+  const ambig  = terms.filter(t => t.ambiguous).length;
+
+  document.getElementById('term-count-label').textContent =
+    `${total} term${total !== 1 ? 's' : ''}`;
+  document.getElementById('chip-total').textContent  = `${total} total`;
+  document.getElementById('chip-ambig').textContent  = `${ambig} flagged ambiguous`;
+
+  document.getElementById('results-area').classList.add('active');
+  renderTable();
+
+  document.getElementById('export-btn').onclick = () => exportCSV(terms);
+}
+
+function setFilter(f) {
+  activeFilter = f;
+  document.getElementById('filter-all').classList.toggle('active', f === 'all');
+  document.getElementById('filter-ambig').classList.toggle('active', f === 'ambiguous');
+  renderTable();
+}
+
+function renderTable() {
+  const query  = (document.getElementById('search-input').value || '').toLowerCase();
+  const tbody  = document.getElementById('term-tbody');
+  tbody.innerHTML = '';
+
+  let filtered = allTerms;
+  if (activeFilter === 'ambiguous') filtered = filtered.filter(t => t.ambiguous);
+  if (query) filtered = filtered.filter(t =>
+    t.term.toLowerCase().includes(query) ||
+    (t.definition || '').toLowerCase().includes(query)
+  );
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" style="padding:1.5rem 0;color:var(--ink-light);font-style:italic;font-family:var(--serif);">No terms match the current filter.</td></tr>`;
+    return;
+  }
+
+  filtered.forEach(t => {
+    const tr = document.createElement('tr');
+    if (t.ambiguous) tr.classList.add('ambiguous');
+
+    const sources = (t.source_docs || []).map(s =>
+      `<span class="source-chip">${escHtml(s.length > 12 ? s.substring(0,10)+'…' : s)}</span>`
+    ).join('');
+
+    const ambigCell = t.ambiguous
+      ? `<span class="ambig-flag">⚠ Ambiguous</span><div class="ambig-note">${escHtml(t.ambiguity_note || '')}</div>`
+      : `<span style="color:var(--ink-light);font-size:0.75rem;">—</span>`;
+
+    tr.innerHTML = `
+      <td class="term-name">${escHtml(t.term)}</td>
+      <td class="term-def">${escHtml(t.definition || '')}</td>
+      <td>${ambigCell}</td>
+      <td><div class="source-chips">${sources}</div></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// ── CSV export with instructions ────────────────────────────────────
+function exportCSV(terms) {
+  const instructions = [
+    '# CORRELATING RESONANCE — PHASE 1 CANDIDATE TERM LIST',
+    '# Generated: ' + new Date().toLocaleDateString(),
+    '#',
+    '# RESEARCHER REVIEW INSTRUCTIONS',
+    '# ─────────────────────────────────────────────────────────────────────────────',
+    '# This file contains candidate concepts extracted from your Phase 1 documents.',
+    '# Before proceeding to Phase 2, review and edit this list as follows:',
+    '#',
+    '# 1. FLAT ARCHITECTURE: Do not create categories or hierarchies in this list.',
+    '#    The cluster analysis will reveal structure. Your role is to ensure the',
+    '#    candidate terms are well-defined and appropriately granular.',
+    '#',
+    '# 2. MERGING: Merge terms that clearly refer to the same concept. Use the',
+    '#    most precise or neutral label. Be conservative — only merge when you are',
+    '#    certain they are the same concept.',
+    '#',
+    '# 3. DELETION: Delete terms that are too broad to be meaningful coding units,',
+    '#    proper nouns that do not represent analytically significant categories,',
+    '#    or terms that are genuine duplicates after merging.',
+    '#',
+    '# 4. DEFINITIONS AND SYNONYMS: The Definition column should capture the',
+    '#    coding rule for this concept — what to look for when coding —',
+    '#    plus any synonyms or alternative phrasings that refer to the same concept.',
+    '#    The definition must not presuppose how the concept is being used.',
+    '#',
+    '# 5. WHY CATEGORIES: Be cautious about pre-specifying values and intentions.',
+    '#    If you notice value or goal concepts in the list, leave them as candidates',
+    '#    without deciding their role. The cluster analysis will reveal whether',
+    '#    they are significant and how they function.',
+    '#',
+    '# 6. AMBIGUOUS TERMS: Terms flagged as ambiguous carry multiple possible',
+    '#    meanings. Do not resolve the ambiguity in the definition — write a',
+    '#    neutral rule that captures all uses. The analysis will show how',
+    '#    the term functions across the corpus.',
+    '#',
+    '# 7. DIRECTIONALITY: The Neutral,directional column records whether a concept',
+    '#    is coded as neutral (no assumed direction) or directional (positive/negative).',
+    '#    Leave as neutral unless you have a specific reason to treat a concept',
+    '#    as directional. This is a deferred extension — neutral is the safe default.',
+    '#',
+    '# 8. SCAFFOLDING: The Scaffolding_Category column is for your orientation only',
+    '#    (e.g. Who / Why / What / How / Barriers). It does not affect the analysis.',
+    '#',
+    '# 9. ADDITIONS: Add any concepts you believe are present in the documents',
+    '#    but missing from this list. Write a neutral definition.',
+    '#',
+    '# Save this file as CSV and upload it to begin Phase 2.',
+    '# ─────────────────────────────────────────────────────────────────────────────',
+    '',
+    '"Term","Definition: including synonyms","Ambiguous","Ambiguity_Note","Neutral,directional","Source_Documents","Scaffolding_Category"'
+  ];
+
+  terms.forEach(t => {
+    const row = [
+      csvCell(t.term),
+      csvCell(t.definition || ''),
+      t.ambiguous ? 'YES' : 'NO',
+      csvCell(t.ambiguity_note || ''),
+      'neutral',
+      csvCell((t.source_docs || []).join('; ')),
+      ''
+    ];
+    instructions.push(row.join(','));
+  });
+
+  const content = instructions.join('\n');
+  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `CR_Phase1_CandidateTerms_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function csvCell(val) {
+  const s = String(val || '');
+  if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+  return s;
+}
+
+// ── Error ───────────────────────────────────────────────────────────
+function showError(msg) {
+  document.getElementById('error-display').innerHTML =
+    `<div class="error-box"><strong>Error</strong>${escHtml(msg)}</div>`;
+}
+
+function clearError() {
+  document.getElementById('error-display').innerHTML = '';
+}
+
+function escHtml(str) {
+  return String(str || '')
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+</script>
+
+<nav class="cr-bottom-nav">
+  <a href="index.html" class="cr-bottom-btn ghost">← Home</a>
+  <div class="cr-bottom-center">Phase 1 of 4 · Typology Development</div>
+  <a href="cr_phase2_saturation.html" class="cr-bottom-btn">Phase 2 · Saturation →</a>
+</nav>
+
+</body>
+</html>

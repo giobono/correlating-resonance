@@ -1,0 +1,1412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Correlating Resonance — Phase 2: Saturation Check</title>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,300;1,400&family=JetBrains+Mono:wght@400;500&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+  :root {
+    --ink: #1a1814;
+    --ink-mid: #4a4640;
+    --ink-light: #9a9490;
+    --paper: #f7f4ef;
+    --paper-mid: #ede9e2;
+    --paper-dark: #ddd8cf;
+    --accent: #8b3a2a;
+    --accent-light: #c4735f;
+    --success: #2a6b4a;
+    --success-bg: #f0f7f3;
+    --success-border: #b8d9c8;
+    --warning: #7a5c1a;
+    --warning-bg: #fdf5e0;
+    --warning-border: #e8d090;
+    --new-concept: #2a4a7a;
+    --new-concept-bg: #eef3fa;
+    --new-concept-border: #b0c4e0;
+    --rule: #d0cbc2;
+    --mono: 'JetBrains Mono', monospace;
+    --serif: 'Spectral', Georgia, serif;
+    --sans: 'Barlow', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  header {
+    border-bottom: 2px solid var(--ink);
+    padding: 1.75rem 3rem 1.5rem;
+    display: flex;
+    align-items: baseline;
+    gap: 2rem;
+    flex-wrap: wrap;
+  }
+
+  .logo {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: 1.4rem;
+    letter-spacing: -0.02em;
+  }
+
+  .logo em { font-style: italic; color: var(--accent); }
+
+  .phase-tag {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--paper);
+    background: var(--accent);
+    padding: 0.25rem 0.65rem;
+    border-radius: 2px;
+  }
+
+  .nav-links {
+    margin-left: auto;
+    display: flex;
+    gap: 1.5rem;
+  }
+
+  .nav-link {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-light);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+  }
+
+  .nav-link:hover { color: var(--accent); border-color: var(--accent); }
+
+  .workspace {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2.5rem 3rem;
+  }
+
+  .section-head {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink-light);
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .section-head::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--rule);
+  }
+
+  /* ── Stacked setup layout ── */
+  .setup-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  /* ── Upload zones ── */
+  .upload-zone {
+    border: 2px dashed var(--paper-dark);
+    border-radius: 4px;
+    padding: 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    background: white;
+    position: relative;
+    min-height: 110px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+  }
+
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--accent-light);
+    background: #fdf9f7;
+  }
+
+  .upload-zone.loaded {
+    border-style: solid;
+    border-color: var(--success);
+    background: var(--success-bg);
+    cursor: default;
+  }
+
+  .upload-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .upload-zone.loaded input[type="file"] { pointer-events: none; }
+
+  .upload-icon { font-size: 1.6rem; color: var(--ink-light); line-height: 1; }
+  .upload-zone.loaded .upload-icon { color: var(--success); }
+
+  .upload-text { font-size: 0.82rem; color: var(--ink-mid); }
+  .upload-text strong { color: var(--ink); }
+  .upload-zone.loaded .upload-text { color: var(--success); font-weight: 500; }
+
+  .upload-sub {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--ink-light);
+  }
+
+  .upload-clear {
+    position: absolute;
+    top: 0.4rem;
+    right: 0.5rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--ink-light);
+    font-size: 0.85rem;
+    z-index: 2;
+  }
+
+  .upload-clear:hover { color: var(--accent); }
+
+  /* ── Typology preview ── */
+  .typology-preview {
+    margin-top: 0.75rem;
+    background: white;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 0.75rem 1rem;
+    max-height: 160px;
+    overflow-y: auto;
+  }
+
+  .typology-preview-item {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.2rem 0;
+    font-size: 0.75rem;
+    border-bottom: 1px solid var(--paper-mid);
+    align-items: baseline;
+  }
+
+  .typology-preview-item:last-child { border-bottom: none; }
+
+  .preview-term {
+    font-weight: 600;
+    color: var(--ink);
+    white-space: nowrap;
+    min-width: 120px;
+  }
+
+  .preview-def {
+    color: var(--ink-light);
+    font-size: 0.72rem;
+    font-style: italic;
+    font-family: var(--serif);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* ── Document upload grid ── */
+  .doc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 0.6rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .doc-slot {
+    border: 2px dashed var(--paper-dark);
+    border-radius: 4px;
+    min-height: 90px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+    background: white;
+    padding: 0.75rem 0.5rem;
+    text-align: center;
+  }
+
+  .doc-slot:hover, .doc-slot.drag-over {
+    border-color: var(--accent-light);
+    background: #fdf9f7;
+  }
+
+  .doc-slot.filled { border-style: solid; border-color: var(--success); background: var(--success-bg); }
+  .doc-slot.processing { border-color: var(--accent); background: #fdf5f3; }
+  .doc-slot.done { border-style: solid; border-color: var(--success); background: var(--success-bg); }
+  .doc-slot.has-new { border-color: var(--new-concept); background: var(--new-concept-bg); }
+
+  .doc-slot input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .doc-slot.filled input,
+  .doc-slot.processing input,
+  .doc-slot.done input,
+  .doc-slot.has-new input { pointer-events: none; }
+
+  .slot-icon { font-size: 1rem; color: var(--ink-light); }
+  .doc-slot.filled .slot-icon,
+  .doc-slot.done .slot-icon { color: var(--success); }
+  .doc-slot.has-new .slot-icon { color: var(--new-concept); }
+  .doc-slot.processing .slot-icon { display: none; }
+
+  .slot-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--paper-dark);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .slot-name {
+    font-size: 0.68rem;
+    color: var(--ink-light);
+    word-break: break-all;
+    line-height: 1.3;
+  }
+
+  .doc-slot.filled .slot-name,
+  .doc-slot.done .slot-name { color: var(--success); font-weight: 500; }
+  .doc-slot.has-new .slot-name { color: var(--new-concept); font-weight: 500; }
+
+  .slot-new-badge {
+    font-family: var(--mono);
+    font-size: 0.58rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    background: var(--new-concept);
+    color: white;
+    padding: 0.1rem 0.3rem;
+    border-radius: 2px;
+    display: none;
+  }
+
+  .doc-slot.has-new .slot-new-badge { display: block; }
+
+  .slot-clear {
+    position: absolute;
+    top: 0.25rem;
+    right: 0.3rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--ink-light);
+    font-size: 0.75rem;
+    z-index: 2;
+  }
+
+  .slot-clear:hover { color: var(--accent); }
+
+  .add-slot-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: 2px dashed var(--paper-dark);
+    border-radius: 4px;
+    padding: 0.6rem 1.25rem;
+    cursor: pointer;
+    background: white;
+    transition: border-color 0.2s, background 0.2s;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--ink-light);
+    user-select: none;
+  }
+
+  .add-slot-btn:hover { border-color: var(--accent-light); background: #fdf9f7; color: var(--accent); }
+
+  /* ── Controls ── */
+  .controls-row {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+  }
+
+  .run-btn {
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    border-radius: 3px;
+    padding: 0.8rem 2rem;
+    font-family: var(--sans);
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+  }
+
+  .run-btn:hover:not(:disabled) { background: var(--accent); }
+  .run-btn:active:not(:disabled) { transform: translateY(1px); }
+  .run-btn:disabled { background: var(--ink-light); cursor: not-allowed; }
+
+  .run-note {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 0.82rem;
+    color: var(--ink-light);
+  }
+
+  /* ── Pipeline ── */
+  .pipeline {
+    background: white;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 2rem;
+    display: none;
+  }
+
+  .pipeline.active { display: block; }
+
+  .pipeline-label {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-mid);
+    margin-bottom: 0.85rem;
+  }
+
+  .pipeline-steps {
+    display: flex;
+    gap: 0;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .pipe-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    flex: 1;
+    min-width: 60px;
+    position: relative;
+  }
+
+  .pipe-step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 12px;
+    right: -50%;
+    width: 100%;
+    height: 2px;
+    background: var(--paper-dark);
+    z-index: 0;
+  }
+
+  .pipe-step.done:not(:last-child)::after { background: var(--success); }
+  .pipe-step.active:not(:last-child)::after { background: var(--accent-light); }
+  .pipe-step.has-new:not(:last-child)::after { background: var(--new-concept); }
+
+  .pipe-dot {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid var(--paper-dark);
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    font-weight: 500;
+    color: var(--ink-light);
+    z-index: 1;
+    transition: all 0.3s;
+  }
+
+  .pipe-step.done .pipe-dot { background: var(--success); border-color: var(--success); color: white; }
+  .pipe-step.has-new .pipe-dot { background: var(--new-concept); border-color: var(--new-concept); color: white; }
+  .pipe-step.active .pipe-dot {
+    border-color: var(--accent);
+    color: var(--accent);
+    animation: pulse-dot 1s ease-in-out infinite;
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(139,58,42,0.3); }
+    50% { box-shadow: 0 0 0 4px rgba(139,58,42,0); }
+  }
+
+  .pipe-label {
+    font-size: 0.6rem;
+    color: var(--ink-light);
+    text-align: center;
+    line-height: 1.2;
+    max-width: 70px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .pipe-step.done .pipe-label { color: var(--success); }
+  .pipe-step.has-new .pipe-label { color: var(--new-concept); font-weight: 600; }
+  .pipe-step.active .pipe-label { color: var(--accent); font-weight: 500; }
+
+  /* ── Results ── */
+  .results-area { display: none; }
+  .results-area.active { display: block; }
+
+  /* ── Saturation verdict ── */
+  .verdict {
+    border-radius: 4px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .verdict.saturated {
+    background: var(--success-bg);
+    border: 1px solid var(--success-border);
+  }
+
+  .verdict.unsaturated {
+    background: var(--new-concept-bg);
+    border: 1px solid var(--new-concept-border);
+  }
+
+  .verdict-icon { font-size: 1.5rem; line-height: 1; }
+
+  .verdict-title {
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+    color: var(--ink);
+  }
+
+  .verdict.saturated .verdict-title { color: var(--success); }
+  .verdict.unsaturated .verdict-title { color: var(--new-concept); }
+
+  .verdict-body {
+    font-family: var(--serif);
+    font-size: 0.85rem;
+    color: var(--ink-mid);
+    line-height: 1.6;
+  }
+
+  /* ── New concepts panel ── */
+  .new-concepts-panel {
+    background: var(--new-concept-bg);
+    border: 1px solid var(--new-concept-border);
+    border-radius: 4px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .new-concepts-title {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--new-concept);
+    margin-bottom: 1rem;
+  }
+
+  .new-concept-card {
+    background: white;
+    border: 1px solid var(--new-concept-border);
+    border-radius: 3px;
+    padding: 0.85rem 1rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .new-concept-card:last-child { margin-bottom: 0; }
+
+  .nc-term {
+    font-weight: 600;
+    color: var(--new-concept);
+    font-size: 0.88rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .nc-def {
+    font-size: 0.8rem;
+    color: var(--ink-mid);
+    margin-bottom: 0.35rem;
+    font-family: var(--serif);
+    font-style: italic;
+  }
+
+  .nc-source {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--new-concept);
+    letter-spacing: 0.04em;
+  }
+
+  /* ── Per-document results table ── */
+  .doc-results {
+    background: white;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+  }
+
+  .doc-results-header {
+    padding: 0.85rem 1.25rem;
+    border-bottom: 1px solid var(--rule);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .doc-results-title {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--ink);
+    letter-spacing: 0.04em;
+  }
+
+  .doc-results-meta {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .meta-chip {
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.15rem 0.5rem;
+    border-radius: 2px;
+  }
+
+  .chip-matched { background: var(--success-bg); color: var(--success); }
+  .chip-new { background: var(--new-concept-bg); color: var(--new-concept); border: 1px solid var(--new-concept-border); }
+
+  .concept-pills {
+    padding: 0.85rem 1.25rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .concept-pill {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 2px;
+    background: var(--paper-mid);
+    color: var(--ink-mid);
+  }
+
+  .concept-pill.important {
+    background: var(--success-bg);
+    color: var(--success);
+    border: 1px solid var(--success-border);
+  }
+
+  /* ── Export bar ── */
+  .export-bar {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 3rem;
+    flex-wrap: wrap;
+  }
+
+  .export-btn {
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    border-radius: 3px;
+    padding: 0.6rem 1.25rem;
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .export-btn:hover { background: var(--success); }
+  .export-btn.secondary {
+    background: none;
+    border: 1px solid var(--paper-dark);
+    color: var(--ink-mid);
+  }
+  .export-btn.secondary:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+  /* ── Error ── */
+  .error-box {
+    background: #fdf0ee;
+    border: 1px solid #e8b4aa;
+    border-radius: 3px;
+    padding: 1rem 1.25rem;
+    color: var(--accent);
+    font-size: 0.82rem;
+    margin-bottom: 1rem;
+  }
+
+  .error-box strong {
+    display: block;
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 0.25rem;
+  }
+
+  .callout {
+    background: white;
+    border-left: 3px solid var(--accent);
+    padding: 1rem 1.25rem;
+    margin-bottom: 2rem;
+    font-family: var(--serif);
+    font-size: 0.88rem;
+    line-height: 1.7;
+    color: var(--ink-mid);
+  }
+
+  .callout strong { color: var(--ink); font-family: var(--sans); font-size: 0.82rem; }
+
+  @media (max-width: 768px) {
+    .workspace { padding: 1.5rem; }
+    header { padding: 1.25rem 1.5rem; }
+  }
+
+  /* ── Shared navigation ── */
+  .cr-nav { border-bottom: 2px solid var(--ink); padding: 1rem 2rem; display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
+  .cr-nav-logo { font-family: var(--serif); font-weight: 300; font-size: 1.1rem; letter-spacing: -0.02em; text-decoration: none; color: var(--ink); flex-shrink: 0; }
+  .cr-nav-logo em { font-style: italic; color: var(--accent); }
+  .cr-phases { display: flex; align-items: center; gap: 0; }
+  .cr-phase-link { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.07em; text-transform: uppercase; text-decoration: none; padding: 0.3rem 0.65rem; border: 1px solid var(--paper-dark); border-right: none; color: var(--ink-light); transition: background 0.15s, color 0.15s; white-space: nowrap; }
+  .cr-phase-link:first-child { border-radius: 3px 0 0 3px; }
+  .cr-phase-link:last-child { border-right: 1px solid var(--paper-dark); border-radius: 0 3px 3px 0; }
+  .cr-phase-link:hover { background: var(--paper-mid); color: var(--ink); }
+  .cr-phase-link.current { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .cr-nav-home { margin-left: auto; font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none; color: var(--ink-light); border-bottom: 1px solid transparent; transition: color 0.15s, border-color 0.15s; }
+  .cr-nav-home:hover { color: var(--accent); border-color: var(--accent); }
+  .cr-bottom-nav { border-top: 1px solid var(--rule); padding: 1.5rem 2rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-top: 3rem; background: white; }
+  .cr-bottom-btn { font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none; color: var(--ink-mid); padding: 0.5rem 1rem; border: 1px solid var(--paper-dark); border-radius: 3px; transition: all 0.15s; }
+  .cr-bottom-btn:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .cr-bottom-btn.ghost { opacity: 0.25; pointer-events: none; }
+  .cr-bottom-center { font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-light); text-align: center; }
+</style>
+</head>
+<body>
+
+<header class="cr-nav">
+  <a href="index.html" class="cr-nav-logo"><em>Correlating Resonance</em></a>
+  <div class="cr-phases">
+    <a href="cr_phase1_typology.html" class="cr-phase-link">Phase 1 · Typology</a>
+    <a href="cr_phase2_saturation.html" class="cr-phase-link current">Phase 2 · Saturation</a>
+    <a href="cr_phase3_1_coding.html" class="cr-phase-link">Phase 3 · Coding</a>
+    <a href="cr_phase4_analysis.html" class="cr-phase-link">Phase 4 · Analysis</a>
+  </div>
+  <a href="index.html" class="cr-nav-home">Home</a>
+</header>
+
+<div class="workspace">
+
+  <div class="callout">
+    <strong>What this does</strong><br>
+    Upload your revised typology CSV from Phase 1 and a batch of new documents (5–10% of your corpus). Each document is coded against the fixed typology in an isolated session. The application flags any content that appears to represent a genuinely new concept not captured by the current typology. If new concepts are found, revise your typology and repeat. If the typology holds, proceed to Phase 3.
+  </div>
+
+  <!-- ── Setup ── -->
+  <div class="setup-grid">
+    <div>
+      <div class="section-head">Typology CSV (from Phase 1)</div>
+      <div class="upload-zone" id="typology-zone">
+        <input type="file" id="typology-file" accept=".csv">
+        <div class="upload-icon">📋</div>
+        <div class="upload-text"><strong>Drop CSV here</strong> or click to browse</div>
+        <div class="upload-sub">Your edited Phase 1 export</div>
+      </div>
+      <div id="typology-preview" style="display:none;">
+        <div class="typology-preview" id="typology-list"></div>
+        <div style="font-family:var(--mono);font-size:0.65rem;color:var(--ink-light);margin-top:0.4rem;" id="typology-count"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-head">Documents to Test</div>
+      <div class="doc-grid" id="doc-grid"></div>
+      <div style="margin-bottom:1rem;">
+        <label class="add-slot-btn" id="add-slot-btn">
+          <input type="file" id="add-doc-input" accept=".txt,.pdf" multiple style="display:none;">
+          <span style="font-size:1.1rem;">+</span>
+          <span>Add document(s)</span>
+        </label>
+      </div>
+      <div style="font-family:var(--serif);font-style:italic;font-size:0.78rem;color:var(--ink-light);" id="doc-count-note">
+        No documents loaded
+      </div>
+    </div>
+  </div>
+
+  <div class="controls-row">
+    <button class="run-btn" id="run-btn" disabled>Run saturation check →</button>
+    <span class="run-note" id="run-note">Load typology and at least one document to begin</span>
+  </div>
+
+  <div id="error-display"></div>
+
+  <!-- ── Pipeline ── -->
+  <div class="pipeline" id="pipeline">
+    <div class="pipeline-label">Processing pipeline</div>
+    <div class="pipeline-steps" id="pipeline-steps"></div>
+  </div>
+
+  <!-- ── Results ── -->
+  <div class="results-area" id="results-area">
+
+    <div id="verdict-box"></div>
+    <div id="new-concepts-box"></div>
+
+    <div class="section-head">Results by document</div>
+    <div id="doc-results-list"></div>
+
+    <div class="export-bar" id="export-bar"></div>
+
+  </div>
+
+</div>
+
+<script>
+const API_KEY = 'YOUR_API_KEY_HERE';
+const MODEL   = 'claude-sonnet-4-20250514';
+
+// ── State ────────────────────────────────────────────────────────────
+let typology   = [];   // [{term, definition, ambiguous, ambiguity_note}]
+let docSlots   = [];   // [{name, text}]
+let slotCount  = 0;
+let allResults = [];   // [{docName, matchedConcepts, newConcepts}]
+
+// ── PDF.js ───────────────────────────────────────────────────────────
+if (window.pdfjsLib) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+// ── Typology CSV upload ───────────────────────────────────────────────
+const typologyZone = document.getElementById('typology-zone');
+const typologyFile = document.getElementById('typology-file');
+
+typologyZone.addEventListener('dragover', e => { e.preventDefault(); typologyZone.classList.add('drag-over'); });
+typologyZone.addEventListener('dragleave', () => typologyZone.classList.remove('drag-over'));
+typologyZone.addEventListener('drop', e => {
+  e.preventDefault();
+  typologyZone.classList.remove('drag-over');
+  if (e.dataTransfer.files[0]) loadTypologyFile(e.dataTransfer.files[0]);
+});
+typologyFile.addEventListener('change', () => {
+  if (typologyFile.files[0]) loadTypologyFile(typologyFile.files[0]);
+});
+
+async function loadTypologyFile(file) {
+  try {
+    const text = await file.text();
+    typology = parseTypologyCSV(text);
+    if (typology.length === 0) throw new Error('No concepts found in CSV');
+    showTypologyPreview();
+    typologyZone.classList.add('loaded');
+    typologyZone.querySelector('.upload-icon').textContent = '✓';
+    typologyZone.querySelector('.upload-text').textContent = `${file.name}`;
+
+    // Clear button
+    let cb = typologyZone.querySelector('.upload-clear');
+    if (!cb) {
+      cb = document.createElement('button');
+      cb.className = 'upload-clear';
+      cb.textContent = '✕';
+      cb.addEventListener('click', e => {
+        e.stopPropagation();
+        typology = [];
+        typologyZone.classList.remove('loaded');
+        typologyZone.querySelector('.upload-icon').textContent = '📋';
+        typologyZone.querySelector('.upload-text').innerHTML = '<strong>Drop CSV here</strong> or click to browse';
+        document.getElementById('typology-preview').style.display = 'none';
+        typologyZone.querySelector('input').value = '';
+        checkReady();
+      });
+      typologyZone.appendChild(cb);
+    }
+    checkReady();
+  } catch (err) {
+    showError('Could not load typology: ' + err.message);
+  }
+}
+
+function parseTypologyCSV(text) {
+  const lines = text.split('\n');
+  const concepts = [];
+  let headerFound = false;
+  let colMap = {};
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    if (line.startsWith('#')) continue;
+
+    const cells = parseCSVRow(line);
+
+    if (!headerFound) {
+      const lower = cells.map(c => c.toLowerCase().trim());
+      if (lower.includes('term')) {
+        colMap.term        = lower.indexOf('term');
+        // Accept both old "definition" and new "definition: including synonyms"
+        colMap.definition  = lower.findIndex(c => c.startsWith('definition'));
+        colMap.ambiguous   = lower.indexOf('ambiguous');
+        colMap.ambig_note  = lower.indexOf('ambiguity_note');
+        // Accept "neutral,directional" or "neutral, directional"
+        colMap.directional = lower.findIndex(c => c.replace(/\s/g,'').startsWith('neutral,directional'));
+        colMap.source_docs = lower.indexOf('source_documents');
+        colMap.scaffolding = lower.indexOf('scaffolding_category');
+        headerFound = true;
+      }
+      continue;
+    }
+
+    const term = (cells[colMap.term] || '').trim();
+    if (!term) continue;
+
+    concepts.push({
+      term,
+      definition:     (cells[colMap.definition]  || '').trim(),
+      ambiguous:      (cells[colMap.ambiguous]   || '').trim().toUpperCase() === 'YES',
+      ambiguity_note: (cells[colMap.ambig_note]  || '').trim(),
+      directional:    (colMap.directional >= 0 ? cells[colMap.directional] || 'neutral' : 'neutral').trim(),
+      source_docs:    (colMap.source_docs >= 0 ? cells[colMap.source_docs] || '' : '').trim(),
+      scaffolding:    (colMap.scaffolding >= 0 ? cells[colMap.scaffolding] || '' : '').trim()
+    });
+  }
+  return concepts;
+}
+
+// Robust CSV row parser — handles quoted fields with embedded commas
+function parseCSVRow(line) {
+  const cells = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
+      else inQuotes = !inQuotes;
+    } else if (ch === ',' && !inQuotes) {
+      cells.push(current);
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  cells.push(current);
+  return cells;
+}
+
+function showTypologyPreview() {
+  const list = document.getElementById('typology-list');
+  list.innerHTML = '';
+  typology.slice(0, 30).forEach(c => {
+    const div = document.createElement('div');
+    div.className = 'typology-preview-item';
+    div.innerHTML = `<span class="preview-term">${escHtml(c.term)}</span>
+                     <span class="preview-def">${escHtml(c.definition || '')}</span>`;
+    list.appendChild(div);
+  });
+  if (typology.length > 30) {
+    const more = document.createElement('div');
+    more.style.cssText = 'padding:0.3rem 0;font-size:0.7rem;color:var(--ink-light);font-family:var(--mono);';
+    more.textContent = `… and ${typology.length - 30} more`;
+    list.appendChild(more);
+  }
+  document.getElementById('typology-preview').style.display = 'block';
+  document.getElementById('typology-count').textContent = `${typology.length} concepts loaded`;
+}
+
+// ── Document slots ────────────────────────────────────────────────────
+document.getElementById('add-doc-input').addEventListener('change', function() {
+  Array.from(this.files).forEach(file => addDocFile(file));
+  this.value = ''; // reset so same file can be re-added after clearing
+});
+
+function addDocFile(file) {
+  const idx = slotCount++;
+  docSlots.push(null);
+
+  const grid = document.getElementById('doc-grid');
+  const slot = document.createElement('div');
+  slot.className = 'doc-slot';
+  slot.id = `doc-slot-${idx}`;
+  slot.innerHTML = `
+    <span class="slot-icon">📄</span>
+    <span class="slot-spinner" style="display:none;"></span>
+    <span class="slot-name" id="slot-name-${idx}">${escHtml(file.name.length > 16 ? file.name.substring(0,14)+'…' : file.name)}</span>
+    <span class="slot-new-badge">new concepts</span>
+  `;
+  // Still support drag-and-drop onto an existing slot to replace it
+  slot.addEventListener('dragover', e => { e.preventDefault(); slot.classList.add('drag-over'); });
+  slot.addEventListener('dragleave', () => slot.classList.remove('drag-over'));
+  slot.addEventListener('drop', e => {
+    e.preventDefault();
+    slot.classList.remove('drag-over');
+    if (e.dataTransfer.files[0]) handleDocFile(idx, e.dataTransfer.files[0]);
+  });
+
+  grid.appendChild(slot);
+  handleDocFile(idx, file);
+}
+
+async function handleDocFile(idx, file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  let text = '';
+  try {
+    if (ext === 'txt') text = await file.text();
+    else if (ext === 'pdf') text = await extractPdfText(file);
+    else { showError('Please upload .txt or .pdf files.'); return; }
+  } catch (err) {
+    showError(`Could not read ${file.name}: ${err.message}`);
+    return;
+  }
+
+  docSlots[idx] = { name: file.name, text: sanitiseText(text.substring(0, 8000)) };
+
+  const slot = document.getElementById(`doc-slot-${idx}`);
+  slot.className = 'doc-slot filled';
+  slot.querySelector('.slot-icon').textContent = '✓';
+  document.getElementById(`slot-name-${idx}`).textContent =
+    file.name.length > 16 ? file.name.substring(0, 14) + '…' : file.name;
+
+  // Clear button
+  if (!slot.querySelector('.slot-clear')) {
+    const cb = document.createElement('button');
+    cb.className = 'slot-clear';
+    cb.textContent = '✕';
+    cb.addEventListener('click', e => {
+      e.stopPropagation();
+      docSlots[idx] = null;
+      slot.className = 'doc-slot';
+      slot.querySelector('.slot-icon').textContent = '📄';
+      document.getElementById(`slot-name-${idx}`).textContent = 'Drop or click';
+      slot.querySelector('input').value = '';
+      cb.remove();
+      updateDocCount();
+      checkReady();
+    });
+    slot.appendChild(cb);
+  }
+
+  updateDocCount();
+  checkReady();
+}
+
+async function extractPdfText(file) {
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  let out = '';
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const content = await page.getTextContent();
+    out += content.items.map(i => i.str).join(' ') + '\n\n';
+  }
+  return out.trim();
+}
+
+function updateDocCount() {
+  const count = docSlots.filter(Boolean).length;
+  document.getElementById('doc-count-note').textContent =
+    count === 0 ? 'No documents loaded'
+    : `${count} document${count > 1 ? 's' : ''} loaded`;
+  checkReady();
+}
+
+function checkReady() {
+  const hasTypology = typology.length > 0;
+  const hasDocs     = docSlots.filter(Boolean).length > 0;
+  const runBtn      = document.getElementById('run-btn');
+  runBtn.disabled   = !(hasTypology && hasDocs);
+  document.getElementById('run-note').textContent =
+    !hasTypology ? 'Load typology CSV to begin'
+    : !hasDocs   ? 'Add at least one document'
+    : `Ready — ${typology.length} concepts, ${docSlots.filter(Boolean).length} document(s)`;
+}
+
+// ── Sanitise ─────────────────────────────────────────────────────────
+function sanitiseText(text) {
+  return text
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/[\u2013\u2014]/g, '-')
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, ' ')
+    .replace(/\\/g, '/')
+    .trim();
+}
+
+// ── JSON repair ───────────────────────────────────────────────────────
+function fixJSONStrings(text) {
+  let result = '', inString = false, escaped = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (escaped) { result += ch; escaped = false; continue; }
+    if (ch === '\\' && inString) { result += ch; escaped = true; continue; }
+    if (ch === '"') { result += ch; inString = !inString; continue; }
+    if (inString) {
+      const code = ch.charCodeAt(0);
+      if (ch === '\n' || ch === '\r' || ch === '\t') { result += ' '; continue; }
+      if (code < 0x20) continue;
+    }
+    result += ch;
+  }
+  return result;
+}
+
+function repairJSON(raw) {
+  const clean = fixJSONStrings(raw.replace(/```json|```/g, '').trim());
+  try { return JSON.parse(clean); } catch (_) {}
+  const start = clean.indexOf('['), end = clean.lastIndexOf(']');
+  if (start !== -1 && end !== -1 && end > start) {
+    try { return JSON.parse(clean.slice(start, end + 1)); } catch (_) {}
+  }
+  const lastBrace = clean.lastIndexOf('}');
+  if (lastBrace !== -1 && start !== -1) {
+    try {
+      const result = JSON.parse(clean.slice(start, lastBrace + 1) + ']');
+      return result;
+    } catch (_) {}
+  }
+  const objects = [], objRe = /\{[^{}]*\}/g;
+  let match;
+  while ((match = objRe.exec(clean)) !== null) {
+    try { const obj = JSON.parse(match[0]); if (obj.term || obj.concept) objects.push(obj); } catch (_) {}
+  }
+  if (objects.length > 0) return objects;
+  throw new Error('Could not parse or repair JSON response');
+}
+
+// ── Pipeline UI ───────────────────────────────────────────────────────
+function buildPipeline(docs) {
+  const steps = document.getElementById('pipeline-steps');
+  steps.innerHTML = '';
+  docs.forEach((d, i) => {
+    const div = document.createElement('div');
+    div.className = 'pipe-step';
+    div.id = `pipe-step-${i}`;
+    div.innerHTML = `<div class="pipe-dot" id="pipe-dot-${i}">${i + 1}</div>
+                     <div class="pipe-label">${escHtml(d.name.substring(0, 12))}</div>`;
+    steps.appendChild(div);
+  });
+  document.getElementById('pipeline').classList.add('active');
+}
+
+function setPipeState(i, state) {
+  const step = document.getElementById(`pipe-step-${i}`);
+  step.className = `pipe-step ${state}`;
+  if (state === 'done') step.querySelector('.pipe-dot').textContent = '✓';
+  if (state === 'has-new') step.querySelector('.pipe-dot').textContent = '!';
+}
+
+// ── API call ──────────────────────────────────────────────────────────
+async function callAPI(system, user, maxTokens = 4096) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': API_KEY,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: maxTokens,
+      system,
+      messages: [{ role: 'user', content: user }]
+    })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || `API error ${res.status}`);
+  }
+  const data = await res.json();
+  return data.content.map(b => b.text || '').join('');
+}
+
+// ── Main run ──────────────────────────────────────────────────────────
+document.getElementById('run-btn').addEventListener('click', runPhase2);
+
+async function runPhase2() {
+  clearError();
+  allResults = [];
+  document.getElementById('results-area').classList.remove('active');
+  document.getElementById('run-btn').disabled = true;
+
+  const activeDocs = docSlots.filter(Boolean);
+  buildPipeline(activeDocs);
+
+  for (let i = 0; i < activeDocs.length; i++) {
+    setPipeState(i, 'active');
+    const slot = document.getElementById(`doc-slot-${i < docSlots.length ? docSlots.indexOf(activeDocs[i]) : i}`);
+
+    try {
+      const result = await codeDocumentAgainstTypology(activeDocs[i], i + 1, activeDocs.length);
+      allResults.push({ docName: activeDocs[i].name, ...result });
+      const hasNew = result.newConcepts && result.newConcepts.length > 0;
+      setPipeState(i, hasNew ? 'has-new' : 'done');
+    } catch (err) {
+      showError(`Error processing document ${i + 1} (${activeDocs[i].name}): ${err.message}`);
+      document.getElementById('run-btn').disabled = false;
+      return;
+    }
+  }
+
+  document.getElementById('run-btn').disabled = false;
+  showResults();
+}
+
+// ── Phase 2 coding prompt ─────────────────────────────────────────────
+async function codeDocumentAgainstTypology(doc, docNum, totalDocs) {
+  const typologyText = typology
+    .map(c => `- ${c.term}: ${c.definition}`)
+    .join('\n');
+
+  const system = `You are a research assistant applying the Correlating Resonance methodology for frame analysis in contested policy spaces.
+
+You are performing Phase 2 saturation checking. The typology is now FIXED — your primary task is to code the document against the existing concepts. Your secondary task is to flag any content that appears to represent a genuinely new concept not captured by the current typology.
+
+CODING RULES:
+1. For each concept in the typology, determine whether it appears as an important or central theme in this document (score 2 or 3) or not (score 0 or 1). Report only the concepts that ARE important or central — omit absent or merely mentioned concepts to keep output compact.
+2. After coding, review the document for any substantive content that is NOT captured by any existing concept. A new concept candidate must be genuinely distinct — not a near-synonym or more specific instance of an existing concept.
+3. Be conservative about flagging new concepts. Only flag something as new if you are confident it represents a substantively different idea that the typology cannot accommodate.
+4. This document is processed in complete isolation. Do not reference other documents.
+
+Return ONLY a valid JSON object — no preamble, no explanation, no markdown:
+{
+  "matchedConcepts": [
+    { "concept": "exact term from typology", "score": 2, "label": "Important theme" }
+  ],
+  "newConcepts": [
+    { "term": "candidate term", "definition": "neutral coding rule for this concept", "rationale": "why this is not captured by existing typology" }
+  ]
+}
+
+If no new concepts are found, return an empty array for newConcepts.
+All string values must use plain straight double quotes only.`;
+
+  const user = `CURRENT TYPOLOGY (${typology.length} concepts):
+${typologyText}
+
+---
+
+DOCUMENT ${docNum} of ${totalDocs}: ${doc.name}
+
+${doc.text}
+
+Code this document against the typology. Flag any genuinely new concepts not captured by the existing terms.`;
+
+  const response = await callAPI(system, user, 4096);
+  return repairJSON(response);
+}
+
+// ── Show results ──────────────────────────────────────────────────────
+function showResults() {
+  const allNew = allResults.flatMap(r => (r.newConcepts || []).map(c => ({ ...c, sourceDoc: r.docName })));
+  const hasSaturated = allNew.length === 0;
+
+  // Verdict
+  const verdictBox = document.getElementById('verdict-box');
+  if (hasSaturated) {
+    verdictBox.innerHTML = `
+      <div class="verdict saturated">
+        <div class="verdict-icon">✓</div>
+        <div>
+          <div class="verdict-title">Typology held — saturation criterion met</div>
+          <div class="verdict-body">No new concepts were identified across ${allResults.length} document${allResults.length > 1 ? 's' : ''}. The typology is stable for this sample. You may proceed to Phase 3 document coding, or continue testing with additional documents if you wish to increase confidence.</div>
+        </div>
+      </div>`;
+  } else {
+    verdictBox.innerHTML = `
+      <div class="verdict unsaturated">
+        <div class="verdict-icon">!</div>
+        <div>
+          <div class="verdict-title">${allNew.length} new concept candidate${allNew.length > 1 ? 's' : ''} flagged</div>
+          <div class="verdict-body">The typology does not yet capture all concepts present in this sample. Review the candidates below, update your typology CSV, and run Phase 2 again with a fresh document batch before proceeding to Phase 3.</div>
+        </div>
+      </div>`;
+  }
+
+  // New concepts panel
+  const newBox = document.getElementById('new-concepts-box');
+  if (allNew.length > 0) {
+    newBox.innerHTML = `
+      <div class="new-concepts-panel">
+        <div class="new-concepts-title">New concept candidates — requires researcher review</div>
+        ${allNew.map(c => `
+          <div class="new-concept-card">
+            <div class="nc-term">${escHtml(c.term)}</div>
+            <div class="nc-def">${escHtml(c.definition || '')}</div>
+            <div style="font-size:0.75rem;color:var(--ink-mid);margin-bottom:0.3rem;">${escHtml(c.rationale || '')}</div>
+            <div class="nc-source">Found in: ${escHtml(c.sourceDoc)}</div>
+          </div>`).join('')}
+      </div>`;
+  } else {
+    newBox.innerHTML = '';
+  }
+
+  // Per-document results
+  const docList = document.getElementById('doc-results-list');
+  docList.innerHTML = '';
+  allResults.forEach(r => {
+    const matched = r.matchedConcepts || [];
+    const hasNew  = (r.newConcepts || []).length > 0;
+    const div = document.createElement('div');
+    div.className = 'doc-results';
+    div.innerHTML = `
+      <div class="doc-results-header">
+        <div class="doc-results-title">${escHtml(r.docName)}</div>
+        <div class="doc-results-meta">
+          <span class="meta-chip chip-matched">${matched.length} concepts matched</span>
+          ${hasNew ? `<span class="meta-chip chip-new">${r.newConcepts.length} new flagged</span>` : ''}
+        </div>
+      </div>
+      <div class="concept-pills">
+        ${matched.map(c => `<span class="concept-pill important">${escHtml(c.concept)}</span>`).join('')}
+        ${matched.length === 0 ? '<span style="font-family:var(--serif);font-style:italic;font-size:0.78rem;color:var(--ink-light);">No concepts scored as important or central in this document</span>' : ''}
+      </div>`;
+    docList.appendChild(div);
+  });
+
+  // Export bar
+  const exportBar = document.getElementById('export-bar');
+  exportBar.innerHTML = '';
+
+  const exportNewBtn = document.createElement('button');
+  exportNewBtn.className = 'export-btn';
+  exportNewBtn.textContent = '↓ Export new concept candidates';
+  exportNewBtn.disabled = allNew.length === 0;
+  if (allNew.length === 0) exportNewBtn.style.opacity = '0.4';
+  exportNewBtn.onclick = () => exportNewConcepts(allNew);
+  exportBar.appendChild(exportNewBtn);
+
+  const exportFullBtn = document.createElement('button');
+  exportFullBtn.className = 'export-btn secondary';
+  exportFullBtn.textContent = '↓ Export full results JSON';
+  exportFullBtn.onclick = () => download(`CR_Phase2_Results_${today()}.json`, JSON.stringify(allResults, null, 2), 'application/json');
+  exportBar.appendChild(exportFullBtn);
+
+  document.getElementById('results-area').classList.add('active');
+}
+
+function exportNewConcepts(newConcepts) {
+  const lines = [
+    '# CORRELATING RESONANCE — PHASE 2 NEW CONCEPT CANDIDATES',
+    '# Generated: ' + new Date().toLocaleDateString(),
+    '#',
+    '# These rows use the same column structure as your typology CSV.',
+    '# To add new concepts to your typology:',
+    '#   1. Review each row below.',
+    '#   2. For genuine new concepts: append the row to your typology CSV.',
+    '#   3. For near-synonyms: update the Definition of the existing concept',
+    '#      to capture the new vocabulary, then discard this row.',
+    '#   4. Ambiguity_Note contains the rationale from the LLM — edit or clear',
+    '#      before re-uploading.',
+    '#   5. Save the updated CSV and run Phase 2 again with a fresh document batch.',
+    '#',
+    '"Term","Definition: including synonyms","Ambiguous","Ambiguity_Note","Neutral,directional","Source_Documents","Scaffolding_Category"'
+  ];
+  newConcepts.forEach(c => {
+    lines.push([
+      csvCell(c.term),
+      csvCell(c.definition || ''),
+      'YES',
+      csvCell(c.rationale || ''),
+      'neutral',
+      csvCell(c.sourceDoc || ''),
+      ''
+    ].join(','));
+  });
+  download(`CR_Phase2_NewConcepts_${today()}.csv`, lines.join('\n'), 'text/csv');
+}
+
+function csvCell(val) {
+  const s = String(val || '');
+  if (s.includes(',') || s.includes('"') || s.includes('\n')) return '"' + s.replace(/"/g, '""') + '"';
+  return s;
+}
+
+function today() { return new Date().toISOString().slice(0, 10); }
+
+function download(filename, content, type) {
+  const blob = new Blob([content], { type });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function showError(msg) {
+  document.getElementById('error-display').innerHTML =
+    `<div class="error-box"><strong>Error</strong>${escHtml(msg)}</div>`;
+}
+
+function clearError() {
+  document.getElementById('error-display').innerHTML = ''; }
+
+function escHtml(str) {
+  return String(str || '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Init ─────────────────────────────────────────────────────────────
+checkReady();
+</script>
+
+<nav class="cr-bottom-nav">
+  <a href="cr_phase1_typology.html" class="cr-bottom-btn">← Phase 1 · Typology</a>
+  <div class="cr-bottom-center">Phase 2 of 4 · Saturation Check</div>
+  <a href="cr_phase3_1_coding.html" class="cr-bottom-btn">Phase 3 · Coding →</a>
+</nav>
+
+</body>
+</html>

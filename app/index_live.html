@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Correlating Resonance — Frame Analysis Methodology</title>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600&family=JetBrains+Mono:wght@400;500&family=Barlow+Condensed:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1814;
+    --ink-mid: #4a4640;
+    --ink-light: #9a9490;
+    --paper: #f7f4ef;
+    --paper-mid: #ede9e2;
+    --paper-dark: #ddd8cf;
+    --accent: #8b3a2a;
+    --accent-light: #c4735f;
+    --accent-dim: #f0e0da;
+    --rule: #d0cbc2;
+    --mono: 'JetBrains Mono', monospace;
+    --serif: 'Spectral', Georgia, serif;
+    --cond: 'Barlow Condensed', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  /* ── Grain overlay ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 100;
+    opacity: 0.6;
+  }
+
+  /* ── Hero ── */
+  .hero {
+    min-height: 100vh;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    border-bottom: 2px solid var(--ink);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Background rule lines — like manuscript paper */
+  .hero::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent,
+      transparent 39px,
+      var(--rule) 39px,
+      var(--rule) 40px
+    );
+    opacity: 0.35;
+    pointer-events: none;
+  }
+
+  .hero-nav {
+    padding: 2rem 4rem;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    position: relative;
+    z-index: 2;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .nav-wordmark {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-light);
+  }
+
+  .nav-wordmark em {
+    font-style: normal;
+    color: var(--accent);
+  }
+
+  .nav-meta {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--ink-light);
+    letter-spacing: 0.08em;
+  }
+
+  .hero-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 4rem 4rem 3rem;
+    position: relative;
+    z-index: 2;
+    max-width: 900px;
+  }
+
+  .hero-eyebrow {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .hero-eyebrow::before {
+    content: '';
+    width: 2rem;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  .hero-title {
+    font-family: var(--cond);
+    font-weight: 300;
+    font-size: clamp(3.5rem, 8vw, 7rem);
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    margin-bottom: 0.15em;
+  }
+
+  .hero-title em {
+    font-style: italic;
+    font-weight: 300;
+    color: var(--accent);
+  }
+
+  .hero-subtitle {
+    font-family: var(--cond);
+    font-weight: 300;
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    color: var(--ink-mid);
+    letter-spacing: 0.02em;
+    margin-bottom: 2.5rem;
+    font-style: italic;
+  }
+
+  .hero-description {
+    font-size: 1.05rem;
+    color: var(--ink-mid);
+    max-width: 640px;
+    line-height: 1.75;
+    margin-bottom: 3rem;
+  }
+
+  .hero-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: var(--ink);
+    color: var(--paper);
+    text-decoration: none;
+    padding: 0.85rem 2rem;
+    font-family: var(--cond);
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: background 0.2s, gap 0.2s;
+    border-radius: 2px;
+  }
+
+  .hero-cta:hover { background: var(--accent); gap: 1.25rem; }
+
+  .hero-cta-arrow { font-size: 1.1rem; }
+
+  .hero-footer {
+    padding: 1.5rem 4rem;
+    border-top: 1px solid var(--rule);
+    display: flex;
+    gap: 3rem;
+    position: relative;
+    z-index: 2;
+  }
+
+  .hero-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+
+  .hero-stat-num {
+    font-family: var(--cond);
+    font-weight: 700;
+    font-size: 1.8rem;
+    color: var(--ink);
+    line-height: 1;
+  }
+
+  .hero-stat-label {
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-light);
+  }
+
+  /* ── Overview section ── */
+  .overview {
+    padding: 6rem 4rem;
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 4rem;
+    border-bottom: 1px solid var(--rule);
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .overview-label {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink-light);
+    padding-top: 0.4rem;
+  }
+
+  .overview-body h2 {
+    font-family: var(--cond);
+    font-weight: 400;
+    font-size: 2rem;
+    color: var(--ink);
+    margin-bottom: 1.25rem;
+    line-height: 1.2;
+  }
+
+  .overview-body p {
+    font-size: 0.95rem;
+    color: var(--ink-mid);
+    margin-bottom: 1rem;
+    max-width: 640px;
+  }
+
+  /* Concept types */
+  .concept-types {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+
+  .concept-type {
+    background: white;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 1.25rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .concept-type::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 3px;
+    height: 100%;
+  }
+
+  .ct-differentiating::before { background: var(--accent); }
+  .ct-bridging::before { background: var(--ink); }
+  .ct-boundary::before { background: var(--paper-dark); }
+
+  .concept-type-name {
+    font-family: var(--cond);
+    font-weight: 600;
+    font-size: 0.85rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink);
+    margin-bottom: 0.5rem;
+  }
+
+  .concept-type-desc {
+    font-size: 0.78rem;
+    color: var(--ink-mid);
+    line-height: 1.5;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 300;
+  }
+
+  /* ── Phase steps ── */
+  .phases {
+    padding: 6rem 4rem;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .phases-header {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 4rem;
+    max-width: 1200px;
+    margin: 0 auto 4rem;
+  }
+
+  .phases-header-label {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink-light);
+    padding-top: 0.4rem;
+  }
+
+  .phases-header h2 {
+    font-family: var(--cond);
+    font-weight: 400;
+    font-size: 2rem;
+    color: var(--ink);
+    line-height: 1.2;
+  }
+
+  .phases-grid {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+
+  .phase-card {
+    background: white;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: box-shadow 0.2s, transform 0.2s;
+    text-decoration: none;
+    color: inherit;
+    animation: fadeUp 0.5s ease both;
+  }
+
+  .phase-card:nth-child(1) { animation-delay: 0.1s; }
+  .phase-card:nth-child(2) { animation-delay: 0.2s; }
+  .phase-card:nth-child(3) { animation-delay: 0.3s; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .phase-card:hover {
+    box-shadow: 0 8px 32px rgba(26,24,20,0.1);
+    transform: translateY(-2px);
+  }
+
+  .phase-card-top {
+    padding: 1.75rem 1.75rem 1.25rem;
+    border-bottom: 1px solid var(--paper-mid);
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .phase-num {
+    font-family: var(--cond);
+    font-weight: 700;
+    font-size: 3rem;
+    line-height: 1;
+    color: var(--paper-dark);
+    flex-shrink: 0;
+    margin-top: -0.1em;
+    transition: color 0.2s;
+  }
+
+  .phase-card:hover .phase-num { color: var(--accent); }
+
+  .phase-card-meta {}
+
+  .phase-tag-label {
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-light);
+    margin-bottom: 0.3rem;
+  }
+
+  .phase-name {
+    font-family: var(--cond);
+    font-weight: 600;
+    font-size: 1.2rem;
+    color: var(--ink);
+    line-height: 1.2;
+  }
+
+  .phase-card-body {
+    padding: 1.25rem 1.75rem;
+    flex: 1;
+  }
+
+  .phase-desc {
+    font-size: 0.85rem;
+    color: var(--ink-mid);
+    line-height: 1.6;
+    margin-bottom: 1rem;
+  }
+
+  .phase-steps {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .phase-steps li {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    color: var(--ink-light);
+    letter-spacing: 0.02em;
+  }
+
+  .phase-steps li::before {
+    content: '→';
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+
+  .phase-card-footer {
+    padding: 1rem 1.75rem;
+    border-top: 1px solid var(--paper-mid);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .phase-io {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .io-chip {
+    font-family: var(--mono);
+    font-size: 0.58rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.15rem 0.45rem;
+    border-radius: 2px;
+  }
+
+  .io-in  { background: var(--paper-mid); color: var(--ink-light); }
+  .io-out { background: var(--accent-dim); color: var(--accent); }
+
+  .phase-link-arrow {
+    font-size: 1rem;
+    color: var(--ink-light);
+    transition: color 0.2s, transform 0.2s;
+  }
+
+  .phase-card:hover .phase-link-arrow { color: var(--accent); transform: translateX(4px); }
+
+  /* ── Workflow diagram ── */
+  .workflow {
+    padding: 5rem 4rem;
+    background: var(--ink);
+    color: var(--paper);
+    border-bottom: 2px solid var(--ink);
+  }
+
+  .workflow-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .workflow-label {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink-light);
+    margin-bottom: 2.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .workflow-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #333;
+  }
+
+  .workflow-flow {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+  }
+
+  .flow-step {
+    flex: 1;
+    min-width: 140px;
+    padding: 1.5rem;
+    border-right: 1px solid #333;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .flow-step:last-child { border-right: none; }
+
+  .flow-step-phase {
+    font-family: var(--mono);
+    font-size: 0.58rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent-light);
+  }
+
+  .flow-step-name {
+    font-family: var(--cond);
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--paper);
+    line-height: 1.2;
+  }
+
+  .flow-step-desc {
+    font-size: 0.75rem;
+    color: #888;
+    line-height: 1.5;
+    font-family: var(--cond);
+    font-weight: 300;
+    flex: 1;
+  }
+
+  .flow-step-output {
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    color: var(--accent-light);
+    letter-spacing: 0.05em;
+    margin-top: auto;
+    padding-top: 0.75rem;
+    border-top: 1px solid #2a2a2a;
+  }
+
+  /* ── Output types ── */
+  .outputs-section {
+    padding: 6rem 4rem;
+    border-bottom: 1px solid var(--rule);
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .outputs-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 4rem;
+  }
+
+  .outputs-label {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink-light);
+    padding-top: 0.4rem;
+  }
+
+  .outputs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .output-item {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1rem;
+    align-items: start;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--paper-mid);
+  }
+
+  .output-item:last-child { border-bottom: none; }
+
+  .output-stage {
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: var(--paper-mid);
+    color: var(--ink-light);
+    padding: 0.2rem 0.5rem;
+    border-radius: 2px;
+    white-space: nowrap;
+    margin-top: 0.15rem;
+  }
+
+  .output-name {
+    font-family: var(--cond);
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--ink);
+    margin-bottom: 0.2rem;
+  }
+
+  .output-desc {
+    font-size: 0.8rem;
+    color: var(--ink-mid);
+    line-height: 1.5;
+  }
+
+  /* ── Footer ── */
+  footer {
+    padding: 2.5rem 4rem;
+    border-top: 2px solid var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .footer-wordmark {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 1rem;
+    color: var(--ink);
+  }
+
+  .footer-meta {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--ink-light);
+    letter-spacing: 0.08em;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 900px) {
+    .hero-nav, .hero-body, .hero-footer { padding-left: 2rem; padding-right: 2rem; }
+    .overview, .phases, .phases-header, .phases-grid,
+    .workflow, .outputs-section { padding-left: 2rem; padding-right: 2rem; }
+    .overview, .outputs-grid { grid-template-columns: 1fr; gap: 2rem; }
+    .phases-header { grid-template-columns: 1fr; gap: 1rem; }
+    .phases-grid { grid-template-columns: 1fr; }
+    .concept-types { grid-template-columns: 1fr; }
+    .hero-footer { gap: 1.5rem; }
+    footer { padding: 2rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Hero ── -->
+<section class="hero">
+  <nav class="hero-nav">
+    <div class="nav-wordmark"><em>Correlating Resonance</em> · Frame Analysis</div>
+    <div class="nav-meta">Research Tool · v1.0</div>
+  </nav>
+
+  <div class="hero-body">
+    <div class="hero-eyebrow">Computational Frame Analysis</div>
+    <h1 class="hero-title">Correlating<br><em>Resonance</em></h1>
+    <p class="hero-subtitle">Identifying frames of reference in contested policy spaces</p>
+    <p class="hero-description">
+      A structured methodology for revealing the conceptual configurations that underpin conflicting positions within complex or wicked problems. Apply it to any corpus of policy texts to map what different stakeholders agree on, what divides them, and where common ground exists.
+    </p>
+    <a href="#phases" class="hero-cta">
+      Begin analysis <span class="hero-cta-arrow">→</span>
+    </a>
+  </div>
+
+  <div class="hero-footer">
+    <div class="hero-stat">
+      <span class="hero-stat-num">4</span>
+      <span class="hero-stat-label">Analytical phases</span>
+    </div>
+    <div class="hero-stat">
+      <span class="hero-stat-num">5</span>
+      <span class="hero-stat-label">Required outputs</span>
+    </div>
+    <div class="hero-stat">
+      <span class="hero-stat-num">∞</span>
+      <span class="hero-stat-label">Corpus types</span>
+    </div>
+  </div>
+</section>
+
+<!-- ── Overview ── -->
+<section class="overview" id="overview">
+  <div class="overview-label">What it does</div>
+  <div class="overview-body">
+    <h2>From a body of texts to a map of frames</h2>
+    <p>
+      Correlating Resonance takes a corpus of texts expressing different positions on a contested issue and produces a structured account of the frames of reference that make those positions incompatible — and the ground on which they might yet converge.
+    </p>
+    <p>
+      The methodology combines inductive concept coding, document-term matrix construction, and cluster analysis to reveal three analytically distinct types of concept across the corpus.
+    </p>
+
+    <div class="concept-types">
+      <div class="concept-type ct-differentiating">
+        <div class="concept-type-name">Core differentiating</div>
+        <div class="concept-type-desc">Strongly present within one frame, absent from others. These are the concepts that make positions genuinely incompatible.</div>
+      </div>
+      <div class="concept-type ct-bridging">
+        <div class="concept-type-name">Core bridging</div>
+        <div class="concept-type-desc">Present and important across two or more frames. The common ground on which people who disagree can still collaborate.</div>
+      </div>
+      <div class="concept-type ct-boundary">
+        <div class="concept-type-name">Boundary concepts</div>
+        <div class="concept-type-desc">Frame-neutral or internally inconsistent. These do not clearly belong to any frame and are noted but not interpreted as primary outputs.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Phase cards ── -->
+<section class="phases" id="phases">
+  <div class="phases-header">
+    <div class="phases-header-label">The process</div>
+    <h2>Four phases, each building on the last</h2>
+  </div>
+
+  <div class="phases-grid">
+
+    <!-- Phase 1 -->
+    <a href="cr_phase1_typology.html" class="phase-card">
+      <div class="phase-card-top">
+        <div class="phase-num">1</div>
+        <div class="phase-card-meta">
+          <div class="phase-tag-label">Phase One</div>
+          <div class="phase-name">Typology Development</div>
+        </div>
+      </div>
+      <div class="phase-card-body">
+        <p class="phase-desc">
+          Upload 5 randomly selected documents from your corpus. The application extracts candidate concepts through open coding, processes each document in isolation to prevent context accumulation, then consolidates into a unified candidate term list.
+        </p>
+        <ul class="phase-steps">
+          <li>Upload 5 random corpus documents</li>
+          <li>Sequential isolated concept extraction</li>
+          <li>Consolidation pass across all documents</li>
+          <li>Download candidate term list for review</li>
+          <li>Edit definitions, merge duplicates, add synonyms</li>
+        </ul>
+      </div>
+      <div class="phase-card-footer">
+        <div class="phase-io">
+          <span class="io-chip io-in">5 × PDF or TXT</span>
+          <span class="io-chip io-out">Typology CSV</span>
+        </div>
+        <span class="phase-link-arrow">→</span>
+      </div>
+    </a>
+
+    <!-- Phase 2 -->
+    <a href="cr_phase2_saturation.html" class="phase-card">
+      <div class="phase-card-top">
+        <div class="phase-num">2</div>
+        <div class="phase-card-meta">
+          <div class="phase-tag-label">Phase Two</div>
+          <div class="phase-name">Saturation Check</div>
+        </div>
+      </div>
+      <div class="phase-card-body">
+        <p class="phase-desc">
+          Upload your revised typology and a new batch of documents (5–10% of the corpus). Each document is coded against the fixed typology in an isolated session. Any content not captured by existing concepts is flagged for researcher review. Repeat until the typology holds without new concepts emerging.
+        </p>
+        <ul class="phase-steps">
+          <li>Upload revised typology CSV</li>
+          <li>Upload new document batch</li>
+          <li>Code each document in isolation</li>
+          <li>Review flagged new concept candidates</li>
+          <li>Update typology and repeat if needed</li>
+        </ul>
+      </div>
+      <div class="phase-card-footer">
+        <div class="phase-io">
+          <span class="io-chip io-in">Typology CSV</span>
+          <span class="io-chip io-in">Document batch</span>
+          <span class="io-chip io-out">Saturated typology</span>
+        </div>
+        <span class="phase-link-arrow">→</span>
+      </div>
+    </a>
+
+    <!-- Phase 3 -->
+    <a href="cr_phase3_1_coding.html" class="phase-card">
+      <div class="phase-card-top">
+        <div class="phase-num">3</div>
+        <div class="phase-card-meta">
+          <div class="phase-tag-label">Phase Three</div>
+          <div class="phase-name">Full Corpus Coding</div>
+        </div>
+      </div>
+      <div class="phase-card-body">
+        <p class="phase-desc">
+          Apply the saturated typology to the full corpus. Documents are processed in configurable batches with automatic checkpoint exports. A hybrid text and vision extraction method handles all PDF types. Outputs are assembled into a Document-Term Matrix.
+        </p>
+        <ul class="phase-steps">
+          <li>Upload final typology CSV</li>
+          <li>Upload full corpus (folder or multi-select)</li>
+          <li>Configure batch size and extraction mode</li>
+          <li>Resume from checkpoint if interrupted</li>
+          <li>Export complete DTM for review</li>
+        </ul>
+      </div>
+      <div class="phase-card-footer">
+        <div class="phase-io">
+          <span class="io-chip io-in">Final typology</span>
+          <span class="io-chip io-in">Full corpus</span>
+          <span class="io-chip io-out">DTM CSV</span>
+        </div>
+        <span class="phase-link-arrow">→</span>
+      </div>
+    </a>
+
+    <!-- Phase 4 -->
+    <a href="cr_phase4_analysis.html" class="phase-card">
+      <div class="phase-card-top">
+        <div class="phase-num">4</div>
+        <div class="phase-card-meta">
+          <div class="phase-tag-label">Phase Four</div>
+          <div class="phase-name">Cluster Analysis</div>
+        </div>
+      </div>
+      <div class="phase-card-body">
+        <p class="phase-desc">
+          Upload the reviewed DTM to complete the analysis. Interactive threshold setting with live heatmap, TTM construction, MCA-based cluster analysis with adjustable cluster count, and LLM-assisted frame naming with researcher validation.
+        </p>
+        <ul class="phase-steps">
+          <li>Set binarisation threshold interactively</li>
+          <li>Build and download sorted TTM</li>
+          <li>Run MCA cluster analysis</li>
+          <li>Compare sorted vs clustered TTM</li>
+          <li>Name and export frames</li>
+        </ul>
+      </div>
+      <div class="phase-card-footer">
+        <div class="phase-io">
+          <span class="io-chip io-in">Reviewed DTM</span>
+          <span class="io-chip io-out">Frame analysis</span>
+        </div>
+        <span class="phase-link-arrow">→</span>
+      </div>
+    </a>
+
+  </div>
+</section>
+
+<!-- ── Workflow ── -->
+<section class="workflow">
+  <div class="workflow-inner">
+    <div class="workflow-label">End-to-end workflow</div>
+    <div class="workflow-flow">
+      <div class="flow-step">
+        <div class="flow-step-phase">Phase 1 · Step 1</div>
+        <div class="flow-step-name">Initial extraction</div>
+        <div class="flow-step-desc">5 random documents coded in isolated sessions to generate candidate terms</div>
+        <div class="flow-step-output">→ Candidate term list</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-step-phase">Phase 1 · Step 2</div>
+        <div class="flow-step-name">Researcher review</div>
+        <div class="flow-step-desc">Merge duplicates, enrich definitions with synonyms, apply scaffolding structure</div>
+        <div class="flow-step-output">→ Revised typology CSV</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-step-phase">Phase 2 · Iterate</div>
+        <div class="flow-step-name">Saturation testing</div>
+        <div class="flow-step-desc">New document batches tested against fixed typology until no new concepts emerge</div>
+        <div class="flow-step-output">→ Saturated typology</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-step-phase">Phase 3 · Step 1</div>
+        <div class="flow-step-name">Full corpus coding</div>
+        <div class="flow-step-desc">Every document scored against every concept — one isolated API call per document</div>
+        <div class="flow-step-output">→ Raw DTM</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-step-phase">Phase 3 · Step 2</div>
+        <div class="flow-step-name">Binarisation</div>
+        <div class="flow-step-desc">Scores converted to binary important / not important using fixed threshold rules</div>
+        <div class="flow-step-output">→ Binary DTM</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-step-phase">Analysis</div>
+        <div class="flow-step-name">Cluster analysis</div>
+        <div class="flow-step-desc">TTM construction and MCA reveals concept configurations — the frames of reference</div>
+        <div class="flow-step-output">→ Frame map</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Outputs ── -->
+<section>
+  <div class="outputs-section" id="outputs">
+    <div class="outputs-grid">
+      <div class="outputs-label">Required outputs</div>
+      <div class="outputs-list">
+
+        <div class="output-item">
+          <span class="output-stage">Phase 1–2</span>
+          <div>
+            <div class="output-name">Final typology</div>
+            <div class="output-desc">A flat, non-hierarchical list of concepts with neutral definitions written as coding rules, enriched with synonyms across saturation iterations. Required for full corpus coding and external validation.</div>
+          </div>
+        </div>
+
+        <div class="output-item">
+          <span class="output-stage">Phase 3</span>
+          <div>
+            <div class="output-name">Raw Document-Term Matrix</div>
+            <div class="output-desc">Every document scored against every concept prior to binarisation. The primary data record for repeatability assessment and subsequent identification of representative documents per frame.</div>
+          </div>
+        </div>
+
+        <div class="output-item">
+          <span class="output-stage">Phase 3</span>
+          <div>
+            <div class="output-name">Term-Term Matrix and thresholds</div>
+            <div class="output-desc">Co-occurrence counts across the binarised DTM, together with the threshold values used to produce it. Necessary for replication.</div>
+          </div>
+        </div>
+
+        <div class="output-item">
+          <span class="output-stage">Analysis</span>
+          <div>
+            <div class="output-name">Cluster analysis and frame map</div>
+            <div class="output-desc">Identified clusters with constituent concepts, frame strength measures, concept designations (bridging / differentiating / boundary), and the documents most closely matching each frame.</div>
+          </div>
+        </div>
+
+        <div class="output-item">
+          <span class="output-stage">Analysis</span>
+          <div>
+            <div class="output-name">Named frames</div>
+            <div class="output-desc">Working names proposed by the LLM and validated by the researcher against representative documents. May be revised following that review.</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Footer ── -->
+<footer>
+  <div class="footer-wordmark">Correlating Resonance</div>
+  <div class="footer-meta">Frame Analysis Methodology · Built on the Anthropic API</div>
+</footer>
+
+</body>
+</html>
