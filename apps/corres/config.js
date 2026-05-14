@@ -1,5 +1,5 @@
 window.CORRES_CONFIG = {
-  apiBase:    'https://api-dev.ebono.net',
+  apiBase:    'https://api-local.ebono.net',
   appId:      'corres',
-  appVersion: '0.9.1',
+  appVersion: '0.9.2-dev',
 };

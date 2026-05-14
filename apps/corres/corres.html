@@ -1,538 +1,156 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Correlating Resonance — Phase 4: Cluster Analysis</title>
-<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,300;1,400&family=JetBrains+Mono:wght@400;500&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,300;1,400&amp;family=JetBrains+Mono:wght@400;500&amp;family=Barlow:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
 <script src="config.js"></script>
-<style>
-  :root {
-    --ink: #1a1814;
-    --ink-mid: #4a4640;
-    --ink-light: #9a9490;
-    --paper: #f7f4ef;
-    --paper-mid: #ede9e2;
-    --paper-dark: #ddd8cf;
-    --accent: #8b3a2a;
-    --accent-light: #c4735f;
-    --accent-dim: #f0e0da;
-    --success: #2a6b4a;
-    --success-bg: #f0f7f3;
-    --success-border: #b8d9c8;
-    --warning: #7a5c1a;
-    --warning-bg: #fdf5e0;
-    --warning-border: #e8d090;
-    --frame-1: #2a4a7a;
-    --frame-2: #2a6b4a;
-    --frame-3: #7a3a6a;
-    --frame-4: #5a4a1a;
-    --frame-5: #1a5a6b;
-    --rule: #d0cbc2;
-    --mono: 'JetBrains Mono', monospace;
-    --serif: 'Spectral', Georgia, serif;
-    --sans: 'Barlow', sans-serif;
-  }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.6; min-height: 100vh; }
-
-  header {
-    border-bottom: 2px solid var(--ink); padding: 1.75rem 3rem 1.5rem;
-    display: flex; align-items: baseline; gap: 2rem; flex-wrap: wrap;
-  }
-  .logo { font-family: var(--serif); font-weight: 300; font-size: 1.4rem; letter-spacing: -0.02em; }
-  .logo em { font-style: italic; color: var(--accent); }
-  .phase-tag {
-    font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.12em;
-    text-transform: uppercase; color: var(--paper); background: var(--accent);
-    padding: 0.25rem 0.65rem; border-radius: 2px;
-  }
-  .nav-links { margin-left: auto; display: flex; gap: 1.5rem; }
-  .nav-link {
-    font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.08em;
-    text-transform: uppercase; color: var(--ink-light); text-decoration: none;
-    border-bottom: 1px solid transparent; transition: color 0.15s, border-color 0.15s;
-  }
-  .nav-link:hover { color: var(--accent); border-color: var(--accent); }
-
-  .workspace { max-width: 1200px; margin: 0 auto; padding: 2.5rem 3rem; }
-
-  .section-head {
-    font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.15em;
-    text-transform: uppercase; color: var(--ink-light); margin-bottom: 1.25rem;
-    display: flex; align-items: center; gap: 0.75rem;
-  }
-  .section-head::after { content: ''; flex: 1; height: 1px; background: var(--rule); }
-
-  /* ── Pyodide status ── */
-  .pyodide-status {
-    display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1.25rem;
-    border-radius: 3px; margin-bottom: 2rem; font-size: 0.82rem;
-    font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.04em;
-    border: 1px solid var(--rule); background: white;
-  }
-  .pyodide-status.loading { color: var(--warning); border-color: var(--warning-border); background: var(--warning-bg); }
-  .pyodide-status.ready   { color: var(--success); border-color: var(--success-border); background: var(--success-bg); }
-  .pyodide-status.error   { color: var(--accent);  border-color: #e8b4aa; background: #fdf0ee; }
-  .py-spinner { width: 14px; height: 14px; border: 2px solid var(--warning-border); border-top-color: var(--warning); border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* ── Upload zone ── */
-  .upload-zone {
-    border: 2px dashed var(--paper-dark); border-radius: 4px; padding: 1.5rem 2rem;
-    display: flex; align-items: center; gap: 1.5rem; background: white; cursor: pointer;
-    transition: border-color 0.2s, background 0.2s; position: relative; margin-bottom: 1.5rem;
-  }
-  .upload-zone:hover, .upload-zone.drag-over { border-color: var(--accent-light); background: #fdf9f7; }
-  .upload-zone.loaded { border-style: solid; border-color: var(--success); background: var(--success-bg); cursor: default; }
-  .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
-  .upload-zone.loaded input { pointer-events: none; }
-  .upload-icon { font-size: 1.8rem; flex-shrink: 0; color: var(--ink-light); }
-  .upload-zone.loaded .upload-icon { color: var(--success); }
-  .upload-body strong { display: block; font-size: 0.88rem; color: var(--ink); margin-bottom: 0.2rem; }
-  .upload-zone.loaded .upload-body strong { color: var(--success); }
-  .upload-sub { font-family: var(--mono); font-size: 0.65rem; color: var(--ink-light); }
-  .upload-stats { font-family: var(--mono); font-size: 0.68rem; color: var(--ink-light); margin-top: 0.5rem; }
-  .upload-clear { position: absolute; top: 0.5rem; right: 0.6rem; background: none; border: none; cursor: pointer; color: var(--ink-light); font-size: 0.85rem; }
-  .upload-clear:hover { color: var(--accent); }
-
-  /* ── Step cards ── */
-  .step-card {
-    background: white; border: 1px solid var(--rule); border-radius: 4px;
-    margin-bottom: 1.5rem; overflow: hidden;
-  }
-  .step-card-header {
-    padding: 1rem 1.5rem; border-bottom: 1px solid var(--paper-mid);
-    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;
-  }
-  .step-card-title {
-    display: flex; align-items: center; gap: 0.75rem;
-  }
-  .step-num {
-    font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.1em;
-    text-transform: uppercase; background: var(--ink); color: var(--paper);
-    padding: 0.2rem 0.5rem; border-radius: 2px;
-  }
-  .step-num.done { background: var(--success); }
-  .step-num.active { background: var(--accent); }
-  .step-name { font-weight: 600; font-size: 0.9rem; color: var(--ink); }
-  .step-card-body { padding: 1.25rem 1.5rem; }
-
-  /* ── Stats row ── */
-  .stats-row { display: flex; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
-  .stat-item { display: flex; flex-direction: column; gap: 0.1rem; }
-  .stat-val { font-family: var(--mono); font-size: 1.1rem; font-weight: 500; color: var(--ink); }
-  .stat-label { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-light); }
-
-  /* ── Threshold controls ── */
-  .threshold-modes {
-    display: flex; gap: 0; border: 1px solid var(--paper-dark);
-    border-radius: 3px; overflow: hidden; margin-bottom: 1.25rem;
-  }
-  .tmode-opt { flex: 1; position: relative; }
-  .tmode-opt input { position: absolute; opacity: 0; width: 0; }
-  .tmode-opt label {
-    display: flex; flex-direction: column; align-items: center; gap: 0.2rem;
-    padding: 0.65rem 0.75rem; cursor: pointer; background: white;
-    font-family: var(--sans); font-size: 0.75rem; font-weight: 500;
-    letter-spacing: 0.03em; border-right: 1px solid var(--paper-dark);
-    transition: background 0.15s, color 0.15s; text-align: center; margin: 0;
-  }
-  .tmode-opt:last-child label { border-right: none; }
-  .tmode-opt label span.tmode-sub { font-size: 0.62rem; color: var(--ink-light); font-weight: 400; font-family: var(--mono); }
-  .tmode-opt input:checked + label { background: var(--ink); color: var(--paper); }
-  .tmode-opt input:checked + label .tmode-sub { color: var(--paper-dark); }
-
-  .slider-row {
-    display: flex; align-items: center; gap: 1rem; margin-bottom: 1.25rem;
-    padding: 0.85rem 1rem; background: var(--paper); border-radius: 3px;
-    border: 1px solid var(--rule);
-  }
-  .slider-label { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-mid); white-space: nowrap; }
-  .slider-track { flex: 1; }
-  input[type="range"].threshold-slider {
-    width: 100%; height: 4px; -webkit-appearance: none; appearance: none;
-    background: var(--paper-dark); border-radius: 2px; outline: none; cursor: pointer;
-  }
-  input[type="range"].threshold-slider::-webkit-slider-thumb {
-    -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
-    background: var(--accent); cursor: pointer; border: 2px solid white;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
-  }
-  input[type="range"].threshold-slider::-moz-range-thumb {
-    width: 16px; height: 16px; border-radius: 50%; background: var(--accent);
-    cursor: pointer; border: 2px solid white;
-  }
-  .slider-val {
-    font-family: var(--mono); font-size: 0.88rem; font-weight: 500;
-    color: var(--accent); min-width: 2.5rem; text-align: center;
-  }
-  .slider-tick-labels {
-    display: flex; justify-content: space-between;
-    font-family: var(--mono); font-size: 0.58rem; color: var(--ink-light);
-    margin-top: 0.25rem; padding: 0 1px;
-  }
-
-  /* ── Bin stats grid ── */
-  .bin-stats-grid {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 0.75rem; margin-bottom: 1.25rem;
-  }
-  .bin-stat-card {
-    background: white; border: 1px solid var(--rule); border-radius: 3px;
-    padding: 0.75rem 1rem;
-  }
-  .bin-stat-card.warn { border-color: var(--warning-border); background: var(--warning-bg); }
-  .bin-stat-card.good { border-color: var(--success-border); background: var(--success-bg); }
-  .bsc-val { font-family: var(--mono); font-size: 1.2rem; font-weight: 500; color: var(--ink); line-height: 1; margin-bottom: 0.2rem; }
-  .bsc-val.warn { color: var(--warning); }
-  .bsc-val.good { color: var(--success); }
-  .bsc-label { font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-light); line-height: 1.3; }
-
-  /* ── Calibration criteria ── */
-  .calibration-checks { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1.25rem; }
-  .cal-check {
-    display: flex; align-items: center; gap: 0.6rem;
-    font-family: var(--sans); font-size: 0.78rem; color: var(--ink-mid);
-  }
-  .cal-icon { font-size: 0.85rem; flex-shrink: 0; width: 1.2rem; text-align: center; }
-
-  /* ── Heatmap ── */
-  .heatmap-section { margin-bottom: 1.25rem; }
-  .heatmap-header {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;
-  }
-  .heatmap-label { font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-light); }
-  .heatmap-legend { display: flex; align-items: center; gap: 0.75rem; }
-  .legend-item { display: flex; align-items: center; gap: 0.35rem; font-family: var(--mono); font-size: 0.6rem; color: var(--ink-light); }
-  .legend-swatch { width: 12px; height: 12px; border-radius: 2px; flex-shrink: 0; }
-  .heatmap-wrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 3px; background: white; }
-  canvas#dtm-heatmap { display: block; image-rendering: pixelated; }
-  .heatmap-note { font-family: var(--serif); font-style: italic; font-size: 0.72rem; color: var(--ink-light); margin-top: 0.35rem; }
-
-  .confirm-bin-row { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; padding-top: 0.5rem; border-top: 1px solid var(--rule); }
-  .confirm-bin-note { font-family: var(--serif); font-style: italic; font-size: 0.82rem; color: var(--ink-light); }
-
-  /* ── Cluster controls ── */
-  .cluster-controls {
-    display: flex; align-items: center; gap: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap;
-  }
-  .cluster-label { font-size: 0.8rem; font-weight: 600; color: var(--ink-mid); text-transform: uppercase; letter-spacing: 0.04em; }
-  .cluster-stepper { display: flex; align-items: center; gap: 0; border: 1px solid var(--paper-dark); border-radius: 3px; overflow: hidden; }
-  .cluster-stepper button {
-    background: white; border: none; padding: 0.45rem 0.75rem; cursor: pointer;
-    font-family: var(--mono); font-size: 0.9rem; color: var(--ink-mid);
-    transition: background 0.15s; border-right: 1px solid var(--paper-dark);
-  }
-  .cluster-stepper button:last-child { border-right: none; }
-  .cluster-stepper button:hover { background: var(--paper-mid); }
-  .cluster-stepper span { padding: 0.45rem 1rem; font-family: var(--mono); font-size: 0.88rem; font-weight: 500; color: var(--ink); border-right: 1px solid var(--paper-dark); background: var(--paper); }
-
-  /* ── Action buttons ── */
-  .btn {
-    border: none; border-radius: 3px; padding: 0.7rem 1.5rem; font-family: var(--sans);
-    font-size: 0.82rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
-    cursor: pointer; transition: background 0.15s, transform 0.1s;
-  }
-  .btn:active:not(:disabled) { transform: translateY(1px); }
-  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-  .btn-primary { background: var(--ink); color: var(--paper); }
-  .btn-primary:hover:not(:disabled) { background: var(--accent); }
-  .btn-success { background: var(--success); color: white; }
-  .btn-success:hover:not(:disabled) { background: #1a5a3a; }
-  .btn-outline { background: none; border: 1px solid var(--paper-dark); color: var(--ink-mid); }
-  .btn-outline:hover:not(:disabled) { border-color: var(--ink); color: var(--ink); background: var(--paper); }
-
-  .btn-row { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1rem; }
-
-  /* ── TTM table ── */
-  .matrix-wrap { overflow: auto; max-height: 400px; border: 1px solid var(--rule); border-radius: 3px; }
-  .matrix-table { border-collapse: collapse; font-size: 0.68rem; white-space: nowrap; min-width: 100%; }
-  .matrix-table thead { position: sticky; top: 0; z-index: 2; }
-  .matrix-table th {
-    background: var(--ink); color: var(--paper); padding: 0.4rem 0.5rem;
-    font-family: var(--mono); font-size: 0.55rem; letter-spacing: 0.06em; text-transform: uppercase;
-    text-align: center; border-right: 1px solid #333; font-weight: 400;
-  }
-  .matrix-table th:first-child { text-align: left; min-width: 160px; position: sticky; left: 0; background: var(--ink); }
-  .matrix-table tbody tr:nth-child(even) { background: #fafaf8; }
-  .matrix-table tbody tr:hover { background: var(--accent-dim); }
-  .matrix-table td {
-    padding: 0.35rem 0.5rem; border-right: 1px solid var(--paper-mid);
-    text-align: center; font-family: var(--mono); color: var(--ink-mid);
-    border-bottom: 1px solid var(--paper-mid);
-  }
-  .matrix-table td:first-child {
-    text-align: left; position: sticky; left: 0; background: white; font-weight: 500;
-    color: var(--ink); z-index: 1;
-  }
-  .matrix-table tbody tr:hover td:first-child { background: var(--accent-dim); }
-  .ttm-high { color: var(--accent) !important; font-weight: 700; }
-  .ttm-mid  { color: var(--ink) !important; font-weight: 500; }
-  .ttm-zero { color: var(--paper-dark) !important; }
-
-  /* ── Cluster results ── */
-  .cluster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
-  .cluster-card { border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; }
-  .cluster-card-header {
-    padding: 0.75rem 1rem; display: flex; align-items: center;
-    justify-content: space-between; border-bottom: 1px solid var(--paper-mid);
-  }
-  .cluster-card-name { font-weight: 600; font-size: 0.88rem; }
-  .cluster-card-count { font-family: var(--mono); font-size: 0.65rem; color: var(--ink-light); }
-  .cluster-card-body { padding: 0.75rem 1rem; }
-  .concept-tag {
-    display: inline-block; font-family: var(--mono); font-size: 0.62rem;
-    padding: 0.15rem 0.45rem; border-radius: 2px; margin: 0.15rem; line-height: 1.4;
-  }
-
-  /* Frame colours */
-  .frame-0 { background: #eef3fa; color: var(--frame-1); border: 1px solid #b0c4e0; }
-  .frame-1 { background: var(--success-bg); color: var(--frame-2); border: 1px solid var(--success-border); }
-  .frame-2 { background: #f9eef6; color: var(--frame-3); border: 1px solid #d9b0d0; }
-  .frame-3 { background: var(--warning-bg); color: var(--frame-4); border: 1px solid var(--warning-border); }
-  .frame-4 { background: #eef7f9; color: var(--frame-5); border: 1px solid #a8d4de; }
-
-  .cluster-card-header.frame-0 { background: #eef3fa; }
-  .cluster-card-header.frame-1 { background: var(--success-bg); }
-  .cluster-card-header.frame-2 { background: #f9eef6; }
-  .cluster-card-header.frame-3 { background: var(--warning-bg); }
-  .cluster-card-header.frame-4 { background: #eef7f9; }
-
-  /* ── Inertia / quality indicator ── */
-  .quality-bar-wrap { margin-bottom: 1rem; }
-  .quality-label { font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-light); margin-bottom: 0.35rem; display: flex; justify-content: space-between; }
-  .quality-bar-track { height: 6px; background: var(--paper-dark); border-radius: 3px; overflow: hidden; }
-  .quality-bar-fill { height: 100%; background: var(--success); border-radius: 3px; transition: width 0.6s ease; }
-  .quality-note { font-family: var(--serif); font-style: italic; font-size: 0.78rem; color: var(--ink-light); margin-top: 0.35rem; }
-
-  /* ── Frame naming ── */
-  .frame-naming-grid { display: flex; flex-direction: column; gap: 1rem; }
-  .frame-name-row {
-    display: grid; grid-template-columns: 120px 1fr 1fr;
-    gap: 1rem; align-items: start; padding: 1rem;
-    border: 1px solid var(--rule); border-radius: 3px; background: white;
-  }
-  .frame-badge {
-    font-family: var(--mono); font-size: 0.72rem; font-weight: 500;
-    padding: 0.35rem 0.75rem; border-radius: 3px; text-align: center;
-  }
-  .frame-name-input {
-    width: 100%; border: 1px solid var(--paper-dark); border-radius: 3px;
-    padding: 0.5rem 0.75rem; font-family: var(--sans); font-size: 0.85rem;
-    color: var(--ink); outline: none; transition: border-color 0.15s;
-  }
-  .frame-name-input:focus { border-color: var(--ink-mid); }
-  .frame-llm-name {
-    font-family: var(--serif); font-style: italic; font-size: 0.82rem;
-    color: var(--ink-mid); padding: 0.5rem 0;
-  }
-
-  /* ── Representative docs ── */
-  .rep-docs-list { margin-top: 0.5rem; }
-  .rep-doc-item {
-    display: flex; align-items: baseline; gap: 0.5rem; padding: 0.3rem 0;
-    border-bottom: 1px solid var(--paper-mid); font-size: 0.75rem;
-  }
-  .rep-doc-item:last-child { border-bottom: none; }
-  .rep-doc-score { font-family: var(--mono); font-size: 0.68rem; color: var(--accent); flex-shrink: 0; }
-  .rep-doc-name { color: var(--ink-mid); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-  /* ── Error ── */
-  .error-box { background: #fdf0ee; border: 1px solid #e8b4aa; border-radius: 3px; padding: 1rem 1.25rem; color: var(--accent); font-size: 0.82rem; margin-bottom: 1rem; }
-  .error-box strong { display: block; font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 0.25rem; }
-
-  .callout { background: white; border-left: 3px solid var(--accent); padding: 1rem 1.25rem; margin-bottom: 2rem; font-family: var(--serif); font-size: 0.88rem; line-height: 1.7; color: var(--ink-mid); }
-  .callout strong { color: var(--ink); font-family: var(--sans); font-size: 0.82rem; }
-
-  @media (max-width: 800px) {
-    .workspace { padding: 1.5rem; }
-    header { padding: 1.25rem 1.5rem; }
-    .frame-name-row { grid-template-columns: 1fr; }
-  }
-
-  /* ── Shared navigation ── */
-  .cr-nav { border-bottom: 2px solid var(--ink); padding: 1rem 2rem; display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
-  .cr-nav-logo { font-family: var(--serif); font-weight: 300; font-size: 1.1rem; letter-spacing: -0.02em; text-decoration: none; color: var(--ink); flex-shrink: 0; }
-  .cr-nav-logo em { font-style: italic; color: var(--accent); }
-  .cr-phases { display: flex; align-items: center; gap: 0; }
-  .cr-phase-link { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.07em; text-transform: uppercase; text-decoration: none; padding: 0.3rem 0.65rem; border: 1px solid var(--paper-dark); border-right: none; color: var(--ink-light); transition: background 0.15s, color 0.15s; white-space: nowrap; }
-  .cr-phase-link:first-child { border-radius: 3px 0 0 3px; }
-  .cr-phase-link:last-child { border-right: 1px solid var(--paper-dark); border-radius: 0 3px 3px 0; }
-  .cr-phase-link:hover { background: var(--paper-mid); color: var(--ink); }
-  .cr-phase-link.current { background: var(--ink); color: var(--paper); border-color: var(--ink); }
-  .cr-nav-home { margin-left: auto; font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none; color: var(--ink-light); border-bottom: 1px solid transparent; transition: color 0.15s, border-color 0.15s; }
-  .cr-nav-home:hover { color: var(--accent); border-color: var(--accent); }
-  .cr-bottom-nav { border-top: 1px solid var(--rule); padding: 1.5rem 2rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-top: 3rem; background: white; }
-  .cr-bottom-btn { font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none; color: var(--ink-mid); padding: 0.5rem 1rem; border: 1px solid var(--paper-dark); border-radius: 3px; transition: all 0.15s; }
-  .cr-bottom-btn:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
-  .cr-bottom-btn.ghost { opacity: 0.25; pointer-events: none; }
-  .cr-bottom-center { font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-light); text-align: center; }
-</style>
-</head>
+<link href="cr-common.css" rel="stylesheet"/><link href="corres.css" rel="stylesheet"/></head>
 <body>
-
 <header class="cr-nav">
-  <a href="index.html" class="cr-nav-logo"><em>Correlating Resonance</em></a>
-  <div class="cr-phases">
-    <a href="cr_phase1_typology.html" class="cr-phase-link">Phase 1 · Typology</a>
-    <a href="cr_phase2_saturation.html" class="cr-phase-link">Phase 2 · Saturation</a>
-    <a href="cr_phase3_1_coding.html" class="cr-phase-link">Phase 3 · Coding</a>
-    <a href="cr_phase4_analysis.html" class="cr-phase-link current">Phase 4 · Analysis</a>
-  </div>
-  <a href="index.html" class="cr-nav-home">Home</a>
+<a class="cr-nav-logo" href="index.html"><em>Correlating Resonance</em></a>
+<div class="cr-phases">
+<a class="cr-phase-link" href="gioianie_index.html">Phase 1 · Typology</a>
+<a class="cr-phase-link" href="gioianie_iterate.html">Phase 2 · Saturation</a>
+<a class="cr-phase-link" href="sanzognie.html">Phase 3 · Coding</a>
+<a class="cr-phase-link current" href="corres.html">Phase 4 · Analysis</a>
+</div>
+<a class="cr-nav-home" href="index.html">Home</a>
 </header>
-
 <div class="workspace">
-
-  <div class="callout">
-    <strong>Before you begin</strong><br>
+<div class="callout">
+<strong>Before you begin</strong><br/>
     This phase expects a reviewed and corrected DTM CSV from Phase 3.1. Low-confidence cells (marked [?]) and any anomalous scores should be resolved in the CSV before uploading. The analysis proceeds in four steps: binarisation → TTM construction → cluster analysis → frame naming. Download the sorted TTM after Step 4.2 and compare it against the clustered output from Step 4.3 to validate the cluster structure before proceeding to naming.
   </div>
-
-  <!-- ── Pyodide status ── -->
-  <div class="pyodide-status loading" id="pyodide-status">
-    <div class="py-spinner" id="py-spinner"></div>
-    <span id="pyodide-msg">Loading Python environment — this takes 15–30 seconds on first load…</span>
-  </div>
-
-  <!-- ── DTM upload ── -->
-  <div class="section-head">Reviewed DTM</div>
-  <div class="upload-zone" id="dtm-zone">
-    <input type="file" id="dtm-file" accept=".csv">
-    <div class="upload-icon">📊</div>
-    <div class="upload-body">
-      <strong>Drop reviewed DTM CSV here or click to browse</strong>
-      <div class="upload-sub">Output from Phase 3.1 with low-confidence cells resolved</div>
-      <div class="upload-stats" id="dtm-stats"></div>
-    </div>
-  </div>
-
-  <div id="error-display"></div>
-
-  <!-- ── Step 4.1 ── -->
-  <div class="step-card" id="card-41">
-    <div class="step-card-header">
-      <div class="step-card-title">
-        <span class="step-num" id="num-41">4.1</span>
-        <span class="step-name">Binarisation</span>
-      </div>
-      <div id="bin-status" style="font-family:var(--mono);font-size:0.68rem;color:var(--ink-light);"></div>
-    </div>
-    <div class="step-card-body" id="bin-card-body">
-      <p style="font-family:var(--serif);font-style:italic;font-size:0.82rem;color:var(--ink-light);" id="bin-waiting">
+<!-- ── Pyodide status ── -->
+<div class="pyodide-status loading" id="pyodide-status">
+<div class="py-spinner" id="py-spinner"></div>
+<span id="pyodide-msg">Loading Python environment — this takes 15–30 seconds on first load…</span>
+</div>
+<!-- ── DTM upload ── -->
+<div class="section-head">Reviewed DTM</div>
+<div class="upload-zone" id="dtm-zone">
+<input accept=".csv" id="dtm-file" type="file"/>
+<div class="upload-icon">📊</div>
+<div class="upload-body">
+<strong>Drop reviewed DTM CSV here or click to browse</strong>
+<div class="upload-sub">Output from Phase 3.1 with low-confidence cells resolved</div>
+<div class="upload-stats" id="dtm-stats"></div>
+</div>
+</div>
+<div id="error-display"></div>
+<!-- ── Step 4.1 ── -->
+<div class="step-card" id="card-41">
+<div class="step-card-header">
+<div class="step-card-title">
+<span class="step-num" id="num-41">4.1</span>
+<span class="step-name">Binarisation</span>
+</div>
+<div id="bin-status" style="font-family:var(--mono);font-size:0.68rem;color:var(--ink-light);"></div>
+</div>
+<div class="step-card-body" id="bin-card-body">
+<p id="bin-waiting" style="font-family:var(--serif);font-style:italic;font-size:0.82rem;color:var(--ink-light);">
         Upload a DTM to begin.
       </p>
-      <div id="bin-controls" style="display:none;">
-
-        <!-- Mode selector -->
-        <div style="margin-bottom:0.75rem;">
-          <div style="font-family:var(--mono);font-size:0.65rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-light);margin-bottom:0.6rem;">Threshold method</div>
-          <div class="threshold-modes">
-            <div class="tmode-opt">
-              <input type="radio" name="tmode" id="tmode-auto" value="auto" checked>
-              <label for="tmode-auto">Auto — mean of non-zero<span class="tmode-sub">experimental</span></label>
-            </div>
-            <div class="tmode-opt">
-              <input type="radio" name="tmode" id="tmode-fixed" value="fixed">
-              <label for="tmode-fixed">Fixed — rating boundary<span class="tmode-sub">scores ≥ 2</span></label>
-            </div>
-            <div class="tmode-opt">
-              <input type="radio" name="tmode" id="tmode-manual" value="manual">
-              <label for="tmode-manual">Manual — set threshold<span class="tmode-sub">researcher judgement</span></label>
-            </div>
-          </div>
-        </div>
-
-        <!-- Slider (shown for auto and manual) -->
-        <div class="slider-row" id="slider-row">
-          <span class="slider-label">Threshold</span>
-          <div class="slider-track">
-            <input type="range" class="threshold-slider" id="threshold-slider" min="0" max="3" step="0.05" value="2">
-            <div class="slider-tick-labels" id="slider-ticks">
-              <span>0</span><span>0.5</span><span>1</span><span>1.5</span><span>2</span><span>2.5</span><span>3</span>
-            </div>
-          </div>
-          <span class="slider-val" id="slider-val-display">2.00</span>
-        </div>
-
-        <!-- Stats grid -->
-        <div class="bin-stats-grid" id="bin-stats-grid"></div>
-
-        <!-- Calibration criteria -->
-        <div class="calibration-checks" id="cal-checks"></div>
-
-        <!-- Heatmap -->
-        <div class="heatmap-section">
-          <div class="heatmap-header">
-            <span class="heatmap-label">DTM heatmap — rows: documents · columns: concepts (sorted by importance)</span>
-            <div class="heatmap-legend">
-              <div class="legend-item"><div class="legend-swatch" style="background:#f0f7f3;border:1px solid #b8d9c8;"></div>Important (≥ threshold)</div>
-              <div class="legend-item"><div class="legend-swatch" style="background:#f7f4ef;border:1px solid #ddd8cf;"></div>Not important</div>
-              <div class="legend-item" id="legend-score3"><div class="legend-swatch" style="background:#8b3a2a;"></div>Score 3</div>
-            </div>
-          </div>
-          <div class="heatmap-wrap">
-            <canvas id="dtm-heatmap"></canvas>
-          </div>
-          <div class="heatmap-note">Each pixel-column is a concept; each pixel-row is a document. Brighter cells indicate higher scores. The green/grey boundary shifts as you adjust the threshold.</div>
-        </div>
-
-        <!-- Confirm -->
-        <div class="confirm-bin-row">
-          <button class="btn btn-success" id="confirm-bin-btn" onclick="confirmBinarisation()">Confirm threshold and build TTM →</button>
-          <span class="confirm-bin-note" id="confirm-bin-note"></span>
-        </div>
-
-      </div>
-    </div>
-  </div>
-
-  <!-- ── Step 4.2 ── -->
-  <div class="step-card" id="card-42">
-    <div class="step-card-header">
-      <div class="step-card-title">
-        <span class="step-num" id="num-42">4.2</span>
-        <span class="step-name">Term-Term Matrix</span>
-      </div>
-      <div style="display:flex;gap:0.5rem;" id="ttm-actions" style="display:none;"></div>
-    </div>
-    <div class="step-card-body" id="ttm-body">
-      <p style="font-family:var(--serif);font-style:italic;font-size:0.82rem;color:var(--ink-light);">Waiting for binarisation…</p>
-    </div>
-  </div>
-
-  <!-- ── Step 4.3 ── -->
-  <div class="step-card" id="card-43">
-    <div class="step-card-header">
-      <div class="step-card-title">
-        <span class="step-num" id="num-43">4.3</span>
-        <span class="step-name">Cluster Analysis</span>
-      </div>
-    </div>
-    <div class="step-card-body" id="cluster-body">
-      <p style="font-family:var(--serif);font-style:italic;font-size:0.82rem;color:var(--ink-light);">Waiting for TTM construction…</p>
-    </div>
-  </div>
-
-  <!-- ── Step 4.4 ── -->
-  <div class="step-card" id="card-44">
-    <div class="step-card-header">
-      <div class="step-card-title">
-        <span class="step-num" id="num-44">4.4</span>
-        <span class="step-name">Frame Naming</span>
-      </div>
-    </div>
-    <div class="step-card-body" id="naming-body">
-      <p style="font-family:var(--serif);font-style:italic;font-size:0.82rem;color:var(--ink-light);">Waiting for confirmed cluster structure…</p>
-    </div>
-  </div>
-
+<div id="bin-controls" style="display:none;">
+<!-- Mode selector -->
+<div style="margin-bottom:0.75rem;">
+<div style="font-family:var(--mono);font-size:0.65rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-light);margin-bottom:0.6rem;">Threshold method</div>
+<div class="threshold-modes">
+<div class="tmode-opt">
+<input checked="" id="tmode-auto" name="tmode" type="radio" value="auto"/>
+<label for="tmode-auto">Auto — mean of non-zero<span class="tmode-sub">experimental</span></label>
 </div>
-
+<div class="tmode-opt">
+<input id="tmode-fixed" name="tmode" type="radio" value="fixed"/>
+<label for="tmode-fixed">Fixed — rating boundary<span class="tmode-sub">scores ≥ 2</span></label>
+</div>
+<div class="tmode-opt">
+<input id="tmode-manual" name="tmode" type="radio" value="manual"/>
+<label for="tmode-manual">Manual — set threshold<span class="tmode-sub">researcher judgement</span></label>
+</div>
+</div>
+</div>
+<!-- Slider (shown for auto and manual) -->
+<div class="slider-row" id="slider-row">
+<span class="slider-label">Threshold</span>
+<div class="slider-track">
+<input class="threshold-slider" id="threshold-slider" max="3" min="0" step="0.05" type="range" value="2"/>
+<div class="slider-tick-labels" id="slider-ticks">
+<span>0</span><span>0.5</span><span>1</span><span>1.5</span><span>2</span><span>2.5</span><span>3</span>
+</div>
+</div>
+<span class="slider-val" id="slider-val-display">2.00</span>
+</div>
+<!-- Stats grid -->
+<div class="bin-stats-grid" id="bin-stats-grid"></div>
+<!-- Calibration criteria -->
+<div class="calibration-checks" id="cal-checks"></div>
+<!-- Heatmap -->
+<div class="heatmap-section">
+<div class="heatmap-header">
+<span class="heatmap-label">DTM heatmap — rows: documents · columns: concepts (sorted by importance)</span>
+<div class="heatmap-legend">
+<div class="legend-item"><div class="legend-swatch" style="background:#f0f7f3;border:1px solid #b8d9c8;"></div>Important (≥ threshold)</div>
+<div class="legend-item"><div class="legend-swatch" style="background:#f7f4ef;border:1px solid #ddd8cf;"></div>Not important</div>
+<div class="legend-item" id="legend-score3"><div class="legend-swatch" style="background:#8b3a2a;"></div>Score 3</div>
+</div>
+</div>
+<div class="heatmap-wrap">
+<canvas id="dtm-heatmap"></canvas>
+</div>
+<div class="heatmap-note">Each pixel-column is a concept; each pixel-row is a document. Brighter cells indicate higher scores. The green/grey boundary shifts as you adjust the threshold.</div>
+</div>
+<!-- Confirm -->
+<div class="confirm-bin-row">
+<button class="btn btn-success" id="confirm-bin-btn" onclick="confirmBinarisation()">Confirm threshold and build TTM →</button>
+<span class="confirm-bin-note" id="confirm-bin-note"></span>
+</div>
+</div>
+</div>
+</div>
+<!-- ── Step 4.2 ── -->
+<div class="step-card" id="card-42">
+<div class="step-card-header">
+<div class="step-card-title">
+<span class="step-num" id="num-42">4.2</span>
+<span class="step-name">Term-Term Matrix</span>
+</div>
+<div id="ttm-actions" style="display:none;"></div>
+</div>
+<div class="step-card-body" id="ttm-body">
+<p style="font-family:var(--serif);font-style:italic;font-size:0.82rem;color:var(--ink-light);">Waiting for binarisation…</p>
+</div>
+</div>
+<!-- ── Step 4.3 ── -->
+<div class="step-card" id="card-43">
+<div class="step-card-header">
+<div class="step-card-title">
+<span class="step-num" id="num-43">4.3</span>
+<span class="step-name">Cluster Analysis</span>
+</div>
+</div>
+<div class="step-card-body" id="cluster-body">
+<p style="font-family:var(--serif);font-style:italic;font-size:0.82rem;color:var(--ink-light);">Waiting for TTM construction…</p>
+</div>
+</div>
+<!-- ── Step 4.4 ── -->
+<div class="step-card" id="card-44">
+<div class="step-card-header">
+<div class="step-card-title">
+<span class="step-num" id="num-44">4.4</span>
+<span class="step-name">Frame Naming</span>
+</div>
+</div>
+<div class="step-card-body" id="naming-body">
+<p style="font-family:var(--serif);font-style:italic;font-size:0.82rem;color:var(--ink-light);">Waiting for confirmed cluster structure…</p>
+</div>
+</div>
+</div>
 <script>
 const MODEL   = 'claude-sonnet-4-20250514';
 
@@ -1521,12 +1139,10 @@ function escHtml(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 </script>
-
 <nav class="cr-bottom-nav">
-  <a href="cr_phase3_1_coding.html" class="cr-bottom-btn">← Phase 3 · Coding</a>
-  <div class="cr-bottom-center">Phase 4 of 4 · Cluster Analysis</div>
-  <a href="index.html" class="cr-bottom-btn ghost">Home →</a>
+<a class="cr-bottom-btn" href="sanzognie.html">← Phase 3 · Coding</a>
+<div class="cr-bottom-center">Phase 4 of 4 · Cluster Analysis</div>
+<a class="cr-bottom-btn ghost" href="index.html">Home →</a>
 </nav>
-
 </body>
 </html>

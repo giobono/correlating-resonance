@@ -1,554 +1,159 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Correlating Resonance — Phase 3.1: Corpus Coding</title>
-<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,300;1,400&family=JetBrains+Mono:wght@400;500&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,300;1,400&amp;family=JetBrains+Mono:wght@400;500&amp;family=Barlow:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="config.js"></script>
-<style>
-  :root {
-    --ink: #1a1814;
-    --ink-mid: #4a4640;
-    --ink-light: #9a9490;
-    --paper: #f7f4ef;
-    --paper-mid: #ede9e2;
-    --paper-dark: #ddd8cf;
-    --accent: #8b3a2a;
-    --accent-light: #c4735f;
-    --success: #2a6b4a;
-    --success-bg: #f0f7f3;
-    --success-border: #b8d9c8;
-    --warning: #7a5c1a;
-    --warning-bg: #fdf5e0;
-    --warning-border: #e8d090;
-    --rule: #d0cbc2;
-    --mono: 'JetBrains Mono', monospace;
-    --serif: 'Spectral', Georgia, serif;
-    --sans: 'Barlow', sans-serif;
-  }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    background: var(--paper);
-    color: var(--ink);
-    font-family: var(--sans);
-    font-size: 15px;
-    line-height: 1.6;
-    min-height: 100vh;
-  }
-
-  /* ── Header ── */
-  header {
-    border-bottom: 2px solid var(--ink);
-    padding: 1.75rem 3rem 1.5rem;
-    display: flex;
-    align-items: baseline;
-    gap: 2rem;
-    flex-wrap: wrap;
-  }
-  .logo { font-family: var(--serif); font-weight: 300; font-size: 1.4rem; letter-spacing: -0.02em; }
-  .logo em { font-style: italic; color: var(--accent); }
-  .phase-tag {
-    font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.12em;
-    text-transform: uppercase; color: var(--paper); background: var(--ink);
-    padding: 0.25rem 0.65rem; border-radius: 2px;
-  }
-  .nav-links { margin-left: auto; display: flex; gap: 1.5rem; }
-  .nav-link {
-    font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.08em;
-    text-transform: uppercase; color: var(--ink-light); text-decoration: none;
-    border-bottom: 1px solid transparent; transition: color 0.15s, border-color 0.15s;
-  }
-  .nav-link:hover { color: var(--accent); border-color: var(--accent); }
-
-  /* ── Workspace ── */
-  .workspace { max-width: 1100px; margin: 0 auto; padding: 2.5rem 3rem; }
-
-  .section-head {
-    font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.15em;
-    text-transform: uppercase; color: var(--ink-light); margin-bottom: 1.25rem;
-    display: flex; align-items: center; gap: 0.75rem;
-  }
-  .section-head::after { content: ''; flex: 1; height: 1px; background: var(--rule); }
-
-  /* ── Config grid ── */
-  .config-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2rem;
-    margin-bottom: 2rem;
-  }
-
-  .config-card {
-    background: white;
-    border: 1px solid var(--rule);
-    border-radius: 4px;
-    padding: 1.5rem;
-  }
-
-  .config-card-title {
-    font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.12em;
-    text-transform: uppercase; color: var(--ink-mid); margin-bottom: 1rem;
-  }
-
-  /* ── Mode selector ── */
-  .mode-group { display: flex; gap: 0; border: 1px solid var(--paper-dark); border-radius: 3px; overflow: hidden; margin-bottom: 1rem; }
-  .mode-option { flex: 1; position: relative; }
-  .mode-option input[type="radio"] { position: absolute; opacity: 0; width: 0; }
-  .mode-option label {
-    display: block; text-align: center; padding: 0.6rem 0.75rem; cursor: pointer;
-    background: white; font-size: 0.75rem; font-weight: 500; letter-spacing: 0.04em;
-    border-right: 1px solid var(--paper-dark); transition: background 0.15s, color 0.15s;
-    text-transform: uppercase; margin: 0; font-family: var(--sans);
-  }
-  .mode-option:last-child label { border-right: none; }
-  .mode-option input[type="radio"]:checked + label { background: var(--ink); color: var(--paper); }
-
-  .scale-ref {
-    background: var(--paper); border: 1px solid var(--rule); border-radius: 3px;
-    padding: 0.75rem 1rem; display: grid; grid-template-columns: auto 1fr;
-    gap: 0.2rem 0.75rem; font-size: 0.72rem;
-  }
-  .scale-score { font-family: var(--mono); font-weight: 500; color: var(--accent); }
-  .scale-desc { color: var(--ink-mid); }
-
-  /* ── Number input ── */
-  .field { margin-bottom: 1rem; }
-  .field label {
-    display: block; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.04em;
-    color: var(--ink-mid); margin-bottom: 0.35rem; text-transform: uppercase;
-  }
-  .field input[type="number"] {
-    width: 100%; background: white; border: 1px solid var(--paper-dark); border-radius: 3px;
-    padding: 0.6rem 0.75rem; font-family: var(--mono); font-size: 0.82rem;
-    color: var(--ink); outline: none; transition: border-color 0.15s;
-  }
-  .field input[type="number"]:focus { border-color: var(--ink-mid); }
-  .field-hint { font-size: 0.72rem; color: var(--ink-light); font-style: italic; font-family: var(--serif); margin-top: 0.25rem; }
-
-  /* ── Upload zones ── */
-  .upload-zone {
-    border: 2px dashed var(--paper-dark); border-radius: 4px; padding: 1.25rem;
-    text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s;
-    background: white; position: relative; min-height: 90px;
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.35rem;
-  }
-  .upload-zone:hover, .upload-zone.drag-over { border-color: var(--accent-light); background: #fdf9f7; }
-  .upload-zone.loaded { border-style: solid; border-color: var(--success); background: var(--success-bg); cursor: default; }
-  .upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
-  .upload-zone.loaded input { pointer-events: none; }
-  .upload-icon { font-size: 1.4rem; color: var(--ink-light); line-height: 1; }
-  .upload-zone.loaded .upload-icon { color: var(--success); }
-  .upload-text { font-size: 0.8rem; color: var(--ink-mid); }
-  .upload-text strong { color: var(--ink); }
-  .upload-zone.loaded .upload-text { color: var(--success); font-weight: 500; font-size: 0.78rem; }
-  .upload-sub { font-family: var(--mono); font-size: 0.62rem; color: var(--ink-light); }
-  .upload-clear {
-    position: absolute; top: 0.4rem; right: 0.5rem; background: none; border: none;
-    cursor: pointer; color: var(--ink-light); font-size: 0.85rem; z-index: 2;
-  }
-  .upload-clear:hover { color: var(--accent); }
-
-  /* ── Corpus file list ── */
-  .corpus-section { margin-bottom: 2rem; }
-
-  .corpus-upload-row {
-    display: flex; gap: 1rem; align-items: stretch; margin-bottom: 1rem;
-  }
-
-  .corpus-drop-zone {
-    flex: 1; border: 2px dashed var(--paper-dark); border-radius: 4px; padding: 1.5rem 2rem;
-    display: flex; align-items: center; gap: 1.5rem; background: white;
-    transition: border-color 0.2s, background 0.2s; position: relative; cursor: pointer;
-  }
-  .corpus-drop-zone:hover, .corpus-drop-zone.drag-over { border-color: var(--accent-light); background: #fdf9f7; }
-  .corpus-drop-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
-  .corpus-drop-icon { font-size: 2rem; color: var(--ink-light); flex-shrink: 0; }
-  .corpus-drop-text { font-size: 0.85rem; color: var(--ink-mid); }
-  .corpus-drop-text strong { color: var(--ink); display: block; margin-bottom: 0.2rem; font-size: 0.9rem; }
-  .corpus-drop-sub { font-family: var(--mono); font-size: 0.65rem; color: var(--ink-light); margin-top: 0.2rem; }
-
-  .corpus-folder-btn {
-    flex-shrink: 0; border: 2px dashed var(--paper-dark); border-radius: 4px;
-    padding: 1rem 1.5rem; background: white; cursor: pointer; position: relative;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 0.35rem; transition: border-color 0.2s, background 0.2s; min-width: 130px;
-    font-family: var(--mono); font-size: 0.65rem; color: var(--ink-light);
-    letter-spacing: 0.06em; text-transform: uppercase; text-align: center;
-  }
-  .corpus-folder-btn:hover { border-color: var(--accent-light); background: #fdf9f7; color: var(--accent); }
-  .corpus-folder-btn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
-  .corpus-folder-btn span:first-child { font-size: 1.4rem; }
-
-  .corpus-summary {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 0.75rem 1rem; background: var(--paper-mid); border-radius: 3px;
-    margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;
-  }
-  .corpus-summary-text { font-family: var(--mono); font-size: 0.72rem; color: var(--ink-mid); }
-  .corpus-summary-text strong { color: var(--ink); }
-  .corpus-clear-btn {
-    background: none; border: 1px solid var(--paper-dark); border-radius: 2px;
-    padding: 0.2rem 0.6rem; font-family: var(--mono); font-size: 0.62rem;
-    letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-light);
-    cursor: pointer; transition: all 0.15s;
-  }
-  .corpus-clear-btn:hover { border-color: var(--accent); color: var(--accent); }
-
-  .corpus-file-list {
-    max-height: 220px; overflow-y: auto; border: 1px solid var(--rule);
-    border-radius: 3px; background: white;
-  }
-  .corpus-file-item {
-    display: grid; grid-template-columns: 2rem 1fr auto auto;
-    align-items: center; gap: 0.5rem; padding: 0.45rem 0.75rem;
-    border-bottom: 1px solid var(--paper-mid); font-size: 0.75rem;
-  }
-  .corpus-file-item:last-child { border-bottom: none; }
-  .corpus-file-item.excluded { opacity: 0.4; }
-  .file-num { font-family: var(--mono); font-size: 0.62rem; color: var(--ink-light); text-align: right; }
-  .file-id { font-family: var(--mono); font-size: 0.65rem; color: var(--accent); white-space: nowrap; }
-  .file-name { color: var(--ink-mid); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.72rem; }
-  .file-size { font-family: var(--mono); font-size: 0.6rem; color: var(--ink-light); white-space: nowrap; }
-
-  /* ── Run controls ── */
-  .run-row {
-    display: flex; gap: 1rem; align-items: center; margin-bottom: 2rem; flex-wrap: wrap;
-  }
-  .run-btn {
-    background: var(--ink); color: var(--paper); border: none; border-radius: 3px;
-    padding: 0.85rem 2rem; font-family: var(--sans); font-size: 0.85rem; font-weight: 600;
-    letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; transition: background 0.15s, transform 0.1s;
-  }
-  .run-btn:hover:not(:disabled) { background: var(--accent); }
-  .run-btn:active:not(:disabled) { transform: translateY(1px); }
-  .run-btn:disabled { background: var(--ink-light); cursor: not-allowed; }
-  .run-note { font-family: var(--serif); font-style: italic; font-size: 0.82rem; color: var(--ink-light); }
-
-  /* ── Progress ── */
-  .progress-panel {
-    background: white; border: 1px solid var(--rule); border-radius: 4px;
-    padding: 1.5rem; margin-bottom: 2rem; display: none;
-  }
-  .progress-panel.active { display: block; }
-
-  .progress-header {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;
-  }
-  .progress-title { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mid); }
-  .progress-counts { font-family: var(--mono); font-size: 0.72rem; color: var(--ink); }
-
-  .progress-bar-track {
-    height: 4px; background: var(--paper-mid); border-radius: 2px; margin-bottom: 1rem; overflow: hidden;
-  }
-  .progress-bar-fill {
-    height: 100%; background: var(--accent); border-radius: 2px;
-    transition: width 0.4s ease; width: 0%;
-  }
-  .progress-bar-fill.done { background: var(--success); }
-
-  .progress-doc-list {
-    max-height: 200px; overflow-y: auto; border: 1px solid var(--paper-mid); border-radius: 3px;
-  }
-  .progress-doc-item {
-    display: grid; grid-template-columns: 1.5rem 1fr auto;
-    align-items: center; gap: 0.5rem; padding: 0.4rem 0.75rem;
-    border-bottom: 1px solid var(--paper-mid); font-size: 0.72rem;
-  }
-  .progress-doc-item:last-child { border-bottom: none; }
-  .pdoc-status { font-size: 0.75rem; text-align: center; }
-  .pdoc-name { color: var(--ink-mid); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--mono); font-size: 0.65rem; }
-  .pdoc-result { font-family: var(--mono); font-size: 0.6rem; color: var(--ink-light); white-space: nowrap; }
-  .pdoc-result.ok   { color: var(--success); }
-  .pdoc-result.warn { color: var(--warning); }
-  .pdoc-result.err  { color: var(--accent); }
-  .pdoc-result.vision { color: var(--new-concept, #2a4a7a); }
-  .pdoc-vision-badge {
-    font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.06em;
-    text-transform: uppercase; background: #eef3fa; color: #2a4a7a;
-    border: 1px solid #b0c4e0; padding: 0.1rem 0.35rem; border-radius: 2px;
-    margin-left: 0.35rem; white-space: nowrap;
-  }
-
-  .batch-divider {
-    display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem;
-    background: var(--paper); border-bottom: 1px solid var(--paper-mid);
-    font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.08em;
-    text-transform: uppercase; color: var(--ink-light);
-  }
-
-  .checkpoint-note {
-    display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem;
-    background: var(--success-bg); border: 1px solid var(--success-border);
-    border-radius: 3px; margin-top: 0.75rem; font-size: 0.78rem; color: var(--success);
-    font-family: var(--serif); font-style: italic;
-  }
-
-  /* ── DTM preview ── */
-  .dtm-panel { display: none; margin-bottom: 2rem; }
-  .dtm-panel.active { display: block; }
-
-  .dtm-toolbar {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;
-  }
-  .dtm-summary { font-family: var(--serif); font-size: 1rem; }
-  .dtm-summary em { font-style: italic; color: var(--accent); }
-
-  .dtm-actions { display: flex; gap: 0.6rem; }
-  .dtm-btn {
-    background: var(--ink); color: var(--paper); border: none; border-radius: 3px;
-    padding: 0.55rem 1.1rem; font-family: var(--mono); font-size: 0.68rem;
-    letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; transition: background 0.15s;
-  }
-  .dtm-btn:hover { background: var(--success); }
-  .dtm-btn.secondary {
-    background: none; border: 1px solid var(--paper-dark); color: var(--ink-mid);
-  }
-  .dtm-btn.secondary:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
-
-  .dtm-table-wrap {
-    overflow-x: auto; border: 1px solid var(--rule); border-radius: 4px; background: white;
-    max-height: 420px; overflow-y: auto;
-  }
-  .dtm-table {
-    border-collapse: collapse; font-size: 0.7rem; white-space: nowrap; min-width: 100%;
-  }
-  .dtm-table thead { position: sticky; top: 0; z-index: 2; }
-  .dtm-table th {
-    background: var(--ink); color: var(--paper); padding: 0.5rem 0.6rem;
-    font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.08em;
-    text-transform: uppercase; font-weight: 500; text-align: center; border-right: 1px solid #333;
-  }
-  .dtm-table th:first-child { text-align: left; min-width: 140px; position: sticky; left: 0; background: var(--ink); }
-  .dtm-table th:nth-child(2) { text-align: left; min-width: 200px; }
-  .dtm-table tbody tr { border-bottom: 1px solid var(--paper-mid); }
-  .dtm-table tbody tr:hover { background: var(--paper); }
-  .dtm-table td {
-    padding: 0.4rem 0.6rem; border-right: 1px solid var(--paper-mid);
-    text-align: center; color: var(--ink-mid); font-family: var(--mono);
-  }
-  .dtm-table td:first-child {
-    text-align: left; font-family: var(--mono); font-size: 0.65rem;
-    color: var(--accent); position: sticky; left: 0; background: white; font-weight: 500;
-  }
-  .dtm-table td:nth-child(2) { text-align: left; color: var(--ink); font-family: var(--sans); font-size: 0.72rem; }
-  .dtm-table tbody tr:hover td:first-child { background: var(--paper); }
-
-  .score-0 { color: var(--paper-dark) !important; }
-  .score-1 { color: var(--ink-light) !important; }
-  .score-2 { color: var(--success) !important; font-weight: 500; }
-  .score-3 { color: var(--accent) !important; font-weight: 700; }
-  .score-hi { color: var(--success) !important; font-weight: 500; }
-
-  .low-conf-cell { background: var(--warning-bg) !important; }
-
-  /* ── Error ── */
-  .error-box {
-    background: #fdf0ee; border: 1px solid #e8b4aa; border-radius: 3px;
-    padding: 1rem 1.25rem; color: var(--accent); font-size: 0.82rem; margin-bottom: 1rem;
-  }
-  .error-box strong {
-    display: block; font-family: var(--mono); font-size: 0.65rem;
-    letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 0.25rem;
-  }
-
-  .callout {
-    background: white; border-left: 3px solid var(--accent); padding: 1rem 1.25rem;
-    margin-bottom: 2rem; font-family: var(--serif); font-size: 0.88rem;
-    line-height: 1.7; color: var(--ink-mid);
-  }
-  .callout strong { color: var(--ink); font-family: var(--sans); font-size: 0.82rem; }
-
-  @media (max-width: 800px) {
-    .config-grid { grid-template-columns: 1fr; }
-    .workspace { padding: 1.5rem; }
-    header { padding: 1.25rem 1.5rem; }
-    .corpus-upload-row { flex-direction: column; }
-  }
-
-  /* ── Shared navigation ── */
-  .cr-nav { border-bottom: 2px solid var(--ink); padding: 1rem 2rem; display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
-  .cr-nav-logo { font-family: var(--serif); font-weight: 300; font-size: 1.1rem; letter-spacing: -0.02em; text-decoration: none; color: var(--ink); flex-shrink: 0; }
-  .cr-nav-logo em { font-style: italic; color: var(--accent); }
-  .cr-phases { display: flex; align-items: center; gap: 0; }
-  .cr-phase-link { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.07em; text-transform: uppercase; text-decoration: none; padding: 0.3rem 0.65rem; border: 1px solid var(--paper-dark); border-right: none; color: var(--ink-light); transition: background 0.15s, color 0.15s; white-space: nowrap; }
-  .cr-phase-link:first-child { border-radius: 3px 0 0 3px; }
-  .cr-phase-link:last-child { border-right: 1px solid var(--paper-dark); border-radius: 0 3px 3px 0; }
-  .cr-phase-link:hover { background: var(--paper-mid); color: var(--ink); }
-  .cr-phase-link.current { background: var(--ink); color: var(--paper); border-color: var(--ink); }
-  .cr-nav-home { margin-left: auto; font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none; color: var(--ink-light); border-bottom: 1px solid transparent; transition: color 0.15s, border-color 0.15s; }
-  .cr-nav-home:hover { color: var(--accent); border-color: var(--accent); }
-  .cr-bottom-nav { border-top: 1px solid var(--rule); padding: 1.5rem 2rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-top: 3rem; background: white; }
-  .cr-bottom-btn { font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none; color: var(--ink-mid); padding: 0.5rem 1rem; border: 1px solid var(--paper-dark); border-radius: 3px; transition: all 0.15s; }
-  .cr-bottom-btn:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
-  .cr-bottom-btn.ghost { opacity: 0.25; pointer-events: none; }
-  .cr-bottom-center { font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-light); text-align: center; }
-</style>
-</head>
+<link href="cr-common.css" rel="stylesheet"/><link href="sanzognie.css" rel="stylesheet"/></head>
 <body>
-
 <header class="cr-nav">
-  <a href="index.html" class="cr-nav-logo"><em>Correlating Resonance</em></a>
-  <div class="cr-phases">
-    <a href="cr_phase1_typology.html" class="cr-phase-link">Phase 1 · Typology</a>
-    <a href="cr_phase2_saturation.html" class="cr-phase-link">Phase 2 · Saturation</a>
-    <a href="cr_phase3_1_coding.html" class="cr-phase-link current">Phase 3 · Coding</a>
-    <a href="cr_phase4_analysis.html" class="cr-phase-link">Phase 4 · Analysis</a>
-  </div>
-  <a href="index.html" class="cr-nav-home">Home</a>
+<a class="cr-nav-logo" href="index.html"><em>Correlating Resonance</em></a>
+<div class="cr-phases">
+<a class="cr-phase-link" href="gioianie_index.html">Phase 1 · Typology</a>
+<a class="cr-phase-link" href="gioianie_iterate.html">Phase 2 · Saturation</a>
+<a class="cr-phase-link current" href="sanzognie.html">Phase 3 · Coding</a>
+<a class="cr-phase-link" href="corres.html">Phase 4 · Analysis</a>
+</div>
+<a class="cr-nav-home" href="index.html">Home</a>
 </header>
-
 <div class="workspace">
-
-  <div class="callout">
-    <strong>What this does</strong><br>
+<div class="callout">
+<strong>What this does</strong><br/>
     Upload your finalised typology and the full corpus. Documents are coded in batches — each document independently scored against every concept in the typology. The DTM is exported automatically after each batch as a checkpoint. Review the DTM before proceeding to Phase 4 for threshold setting, binarisation, and cluster analysis. If the coding looks wrong, adjust the configuration or return to Phase 2 to revise the typology.
   </div>
-
-  <!-- ── Configuration ── -->
-  <div class="section-head">Configuration</div>
-  <div class="config-grid">
-
-    <div class="config-card">
-      <div class="config-card-title">Coding mode</div>
-      <div class="mode-group">
-        <div class="mode-option">
-          <input type="radio" name="mode" id="mode-rating" value="rating" checked>
-          <label for="mode-rating">Rating (0–3)</label>
-        </div>
-        <div class="mode-option">
-          <input type="radio" name="mode" id="mode-frequency" value="frequency">
-          <label for="mode-frequency">Frequency count</label>
-        </div>
-      </div>
-      <div class="scale-ref" id="scale-ref">
-        <span class="scale-score">0</span><span class="scale-desc">Absent</span>
-        <span class="scale-score">1</span><span class="scale-desc">Mentioned — brief reference only</span>
-        <span class="scale-score">2</span><span class="scale-desc">Important — discussed and emphasised</span>
-        <span class="scale-score">3</span><span class="scale-desc">Central — core focus of document</span>
-      </div>
-    </div>
-
-    <div class="config-card">
-      <div class="config-card-title">Processing settings</div>
-      <div class="field">
-        <label>Batch size</label>
-        <input type="number" id="batch-size" value="20" min="1" max="100">
-        <div class="field-hint">Documents processed before each automatic DTM checkpoint export.</div>
-      </div>
-      <div class="field">
-        <label>Text extract limit (characters)</label>
-        <input type="number" id="text-limit" value="15000" min="3000" max="30000" step="1000">
-        <div class="field-hint">Characters extracted per document. Higher = more context, more tokens.</div>
-      </div>
-      <div class="field">
-        <label>Vision fallback threshold (characters)</label>
-        <input type="number" id="vision-threshold" value="500" min="100" max="5000" step="100">
-        <div class="field-hint">If extracted text is below this length the PDF is sent directly to the API for vision-based coding.</div>
-      </div>
-
-      <div class="field" style="margin-top:1.25rem;">
-        <div class="config-card-title" style="margin-bottom:0.75rem;">Typology CSV</div>
-        <div class="upload-zone" id="typology-zone">
-          <input type="file" id="typology-file" accept=".csv">
-          <div class="upload-icon">📋</div>
-          <div class="upload-text"><strong>Drop CSV here</strong> or click to browse</div>
-          <div class="upload-sub">Finalised typology from Phase 2</div>
-        </div>
-        <div style="font-family:var(--mono);font-size:0.65rem;color:var(--ink-light);margin-top:0.35rem;" id="typology-count"></div>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- ── Corpus upload ── -->
-  <div class="section-head">Corpus documents</div>
-  <div class="corpus-section">
-    <div class="corpus-upload-row">
-      <div class="corpus-drop-zone" id="corpus-drop">
-        <input type="file" id="corpus-files" accept=".txt,.pdf" multiple>
-        <div class="corpus-drop-icon">📄</div>
-        <div class="corpus-drop-text">
-          <strong>Select multiple files</strong>
+<!-- ── Configuration ── -->
+<div class="section-head">Configuration</div>
+<div class="config-grid">
+<div class="config-card">
+<div class="config-card-title">Coding mode</div>
+<div class="mode-group">
+<div class="mode-option">
+<input checked="" id="mode-rating" name="mode" type="radio" value="rating"/>
+<label for="mode-rating">Rating (0–3)</label>
+</div>
+<div class="mode-option">
+<input id="mode-frequency" name="mode" type="radio" value="frequency"/>
+<label for="mode-frequency">Frequency count</label>
+</div>
+</div>
+<div class="scale-ref" id="scale-ref">
+<span class="scale-score">0</span><span class="scale-desc">Absent</span>
+<span class="scale-score">1</span><span class="scale-desc">Mentioned — brief reference only</span>
+<span class="scale-score">2</span><span class="scale-desc">Important — discussed and emphasised</span>
+<span class="scale-score">3</span><span class="scale-desc">Central — core focus of document</span>
+</div>
+</div>
+<div class="config-card">
+<div class="config-card-title">Processing settings</div>
+<div class="field">
+<label>Batch size</label>
+<input id="batch-size" max="100" min="1" type="number" value="20"/>
+<div class="field-hint">Documents processed before each automatic DTM checkpoint export.</div>
+</div>
+<div class="field">
+<label>Text extract limit (characters)</label>
+<input id="text-limit" max="30000" min="3000" step="1000" type="number" value="15000"/>
+<div class="field-hint">Characters extracted per document. Higher = more context, more tokens.</div>
+</div>
+<div class="field">
+<label>Vision fallback threshold (characters)</label>
+<input id="vision-threshold" max="5000" min="100" step="100" type="number" value="500"/>
+<div class="field-hint">If extracted text is below this length the PDF is sent directly to the API for vision-based coding.</div>
+</div>
+<div class="field" style="margin-top:1.25rem;">
+<div class="config-card-title" style="margin-bottom:0.75rem;">Typology CSV</div>
+<div class="upload-zone" id="typology-zone">
+<input accept=".csv" id="typology-file" type="file"/>
+<div class="upload-icon">📋</div>
+<div class="upload-text"><strong>Drop CSV here</strong> or click to browse</div>
+<div class="upload-sub">Finalised typology from Phase 2</div>
+</div>
+<div id="typology-count" style="font-family:var(--mono);font-size:0.65rem;color:var(--ink-light);margin-top:0.35rem;"></div>
+</div>
+</div>
+</div>
+<!-- ── Corpus upload ── -->
+<div class="section-head">Corpus documents</div>
+<div class="corpus-section">
+<div class="corpus-upload-row">
+<div class="corpus-drop-zone" id="corpus-drop">
+<input accept=".txt,.pdf" id="corpus-files" multiple="" type="file"/>
+<div class="corpus-drop-icon">📄</div>
+<div class="corpus-drop-text">
+<strong>Select multiple files</strong>
           Drop PDF or TXT files here, or click to browse and select all corpus documents at once
           <div class="corpus-drop-sub">.pdf and .txt · select all at once using Shift+click or Ctrl+click</div>
-        </div>
-      </div>
-      <label class="corpus-folder-btn">
-        <input type="file" id="corpus-folder" accept=".txt,.pdf" webkitdirectory>
-        <span>📁</span>
-        <span>Select<br>folder</span>
-      </label>
-    </div>
-    <div id="corpus-summary" style="display:none;" class="corpus-summary">
-      <span class="corpus-summary-text" id="corpus-summary-text"></span>
-      <button class="corpus-clear-btn" id="corpus-clear-btn">Clear corpus</button>
-    </div>
-    <div id="corpus-file-list" style="display:none;" class="corpus-file-list"></div>
-  </div>
-
-  <!-- ── Resume from checkpoint ── -->
-  <div class="section-head">Resume from checkpoint <span style="font-family:var(--serif);font-style:italic;font-weight:300;font-size:0.9em;text-transform:none;letter-spacing:0;color:var(--ink-light);">— optional</span></div>
-  <div style="margin-bottom:2rem;">
-    <div class="upload-zone" id="checkpoint-zone" style="max-width:520px;">
-      <input type="file" id="checkpoint-file" accept=".csv">
-      <div class="upload-icon">⏸</div>
-      <div class="upload-text"><strong>Drop a checkpoint DTM here</strong> or click to browse</div>
-      <div class="upload-sub">Documents already in this file will be skipped</div>
-    </div>
-    <div id="checkpoint-status" style="display:none;margin-top:0.6rem;font-family:var(--mono);font-size:0.72rem;color:var(--success);"></div>
-  </div>
-
-  <!-- ── Run ── -->
-  <div class="run-row">
-    <button class="run-btn" id="run-btn" disabled>Begin corpus coding →</button>
-    <span class="run-note" id="run-note">Load typology and corpus to begin</span>
-  </div>
-
-  <div id="error-display"></div>
-
-  <!-- ── Progress ── -->
-  <div class="progress-panel" id="progress-panel">
-    <div class="progress-header">
-      <div class="progress-title">Coding progress</div>
-      <div class="progress-counts" id="progress-counts">0 / 0</div>
-    </div>
-    <div class="progress-bar-track">
-      <div class="progress-bar-fill" id="progress-bar"></div>
-    </div>
-    <div class="progress-doc-list" id="progress-doc-list"></div>
-    <div id="checkpoint-note" style="display:none;" class="checkpoint-note">
+</div>
+</div>
+<label class="corpus-folder-btn">
+<input accept=".txt,.pdf" id="corpus-folder" type="file" webkitdirectory=""/>
+<span>📁</span>
+<span>Select<br/>folder</span>
+</label>
+</div>
+<div class="corpus-summary" id="corpus-summary" style="display:none;">
+<span class="corpus-summary-text" id="corpus-summary-text"></span>
+<button class="corpus-clear-btn" id="corpus-clear-btn">Clear corpus</button>
+</div>
+<div class="corpus-file-list" id="corpus-file-list" style="display:none;"></div>
+</div>
+<!-- ── Resume from checkpoint ── -->
+<div class="section-head">Resume from checkpoint <span style="font-family:var(--serif);font-style:italic;font-weight:300;font-size:0.9em;text-transform:none;letter-spacing:0;color:var(--ink-light);">— optional</span></div>
+<div style="margin-bottom:2rem;">
+<div class="upload-zone" id="checkpoint-zone" style="max-width:520px;">
+<input accept=".csv" id="checkpoint-file" type="file"/>
+<div class="upload-icon">⏸</div>
+<div class="upload-text"><strong>Drop a checkpoint DTM here</strong> or click to browse</div>
+<div class="upload-sub">Documents already in this file will be skipped</div>
+</div>
+<div id="checkpoint-status" style="display:none;margin-top:0.6rem;font-family:var(--mono);font-size:0.72rem;color:var(--success);"></div>
+</div>
+<!-- ── Run ── -->
+<div class="run-row">
+<button class="run-btn" disabled="" id="run-btn">Begin corpus coding →</button>
+<span class="run-note" id="run-note">Load typology and corpus to begin</span>
+</div>
+<div id="error-display"></div>
+<!-- ── Progress ── -->
+<div class="progress-panel" id="progress-panel">
+<div class="progress-header">
+<div class="progress-title">Coding progress</div>
+<div class="progress-counts" id="progress-counts">0 / 0</div>
+</div>
+<div class="progress-bar-track">
+<div class="progress-bar-fill" id="progress-bar"></div>
+</div>
+<div class="progress-doc-list" id="progress-doc-list"></div>
+<div class="checkpoint-note" id="checkpoint-note" style="display:none;">
       ✓ Checkpoint exported — DTM saved to your downloads folder
     </div>
-  </div>
-
-  <!-- ── DTM preview ── -->
-  <div class="dtm-panel" id="dtm-panel">
-    <div class="section-head">Document-Term Matrix</div>
-    <div class="dtm-toolbar">
-      <div class="dtm-summary" id="dtm-summary">DTM ready</div>
-      <div class="dtm-actions">
-        <button class="dtm-btn" id="export-full-btn">↓ Export full DTM</button>
-        <button class="dtm-btn secondary" id="export-json-btn">↓ Export JSON</button>
-      </div>
-    </div>
-    <div class="dtm-table-wrap">
-      <table class="dtm-table" id="dtm-table">
-        <thead id="dtm-thead"></thead>
-        <tbody id="dtm-tbody"></tbody>
-      </table>
-    </div>
-    <div style="margin-top:0.75rem;font-family:var(--serif);font-style:italic;font-size:0.78rem;color:var(--ink-light);">
+</div>
+<!-- ── DTM preview ── -->
+<div class="dtm-panel" id="dtm-panel">
+<div class="section-head">Document-Term Matrix</div>
+<div class="dtm-toolbar">
+<div class="dtm-summary" id="dtm-summary">DTM ready</div>
+<div class="dtm-actions">
+<button class="dtm-btn" id="export-full-btn">↓ Export full DTM</button>
+<button class="dtm-btn secondary" id="export-json-btn">↓ Export JSON</button>
+</div>
+</div>
+<div class="dtm-table-wrap">
+<table class="dtm-table" id="dtm-table">
+<thead id="dtm-thead"></thead>
+<tbody id="dtm-tbody"></tbody>
+</table>
+</div>
+<div style="margin-top:0.75rem;font-family:var(--serif);font-style:italic;font-size:0.78rem;color:var(--ink-light);">
       Cells highlighted in amber indicate low-confidence scores flagged by the LLM. Proceed to Phase 3.2 for threshold setting and binarisation.
     </div>
-  </div>
-
 </div>
-
+</div>
 <script>
 const MODEL    = 'claude-sonnet-4-20250514';
 
@@ -1370,12 +975,10 @@ function escHtml(str) {
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 </script>
-
 <nav class="cr-bottom-nav">
-  <a href="cr_phase2_saturation.html" class="cr-bottom-btn">← Phase 2 · Saturation</a>
-  <div class="cr-bottom-center">Phase 3 of 4 · Corpus Coding</div>
-  <a href="cr_phase4_analysis.html" class="cr-bottom-btn">Phase 4 · Analysis →</a>
+<a class="cr-bottom-btn" href="gioianie_iterate.html">← Phase 2 · Saturation</a>
+<div class="cr-bottom-center">Phase 3 of 4 · Corpus Coding</div>
+<a class="cr-bottom-btn" href="corres.html">Phase 4 · Analysis →</a>
 </nav>
-
 </body>
 </html>
