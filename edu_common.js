@@ -92,6 +92,50 @@ window.callAPI = async function callAPI(system, user, maxTokens = 4096) {
   return data.text;
 };
 
+// §A — App-specific endpoint helper
+//
+// POSTs body to ${cfg.apiBase}/v1/${appId}/${path} and returns the parsed
+// JSON response. Errors thrown carry .code and .status for callers that
+// need machine-readable error handling.
+//
+// Used by Phase 1 consolidation in v0.9.3. v0.10.0 generalises this across
+// every workflow that has a server-side endpoint.
+async function callAppAPI(appId, path, body) {
+  const cfg = window.CORRES_CONFIG;
+  if (!cfg || !cfg.apiBase) {
+    throw new Error('CORRES_CONFIG not loaded — check config.js is deployed');
+  }
+
+  const requestId = (crypto.randomUUID && crypto.randomUUID()) ||
+                    (Date.now() + '-' + Math.random().toString(36).slice(2));
+
+  const res = await fetch(`${cfg.apiBase}/v1/${appId}/${path}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Request-Id': requestId,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    let detail = res.statusText;
+    let code = `http_${res.status}`;
+    try {
+      const err = await res.json();
+      detail = err?.detail?.message || detail;
+      code = err?.detail?.code || code;
+    } catch (_) { /* keep statusText */ }
+    const error = new Error(`API error ${res.status}: ${detail}`);
+    error.code = code;
+    error.status = res.status;
+    throw error;
+  }
+
+  return res.json();
+}
+
+
 
 /* ============================================================================
  * §B  FILE I/O — stays browser-side until §16 file-services lands
@@ -142,6 +186,26 @@ window.readFile = async function readFile(file, opts = {}) {
   }
 
   throw new Error(`Unsupported file type: ${file.name}`);
+};
+
+/**
+ * Sanitise text before sending to the LLM. Removes characters that
+ * commonly cause LLMs to generate broken JSON: smart quotes (replaced
+ * with straight ASCII equivalents), en/em dashes (replaced with hyphens),
+ * control characters (replaced with spaces), and backslashes (replaced
+ * with forward slashes).
+ *
+ * @param {string} text Raw text from a file or other untrusted source
+ * @returns {string}    Sanitised text safe for inclusion in an LLM prompt
+ */
+window.sanitiseText = function sanitiseText(text) {
+  return String(text ?? '')
+    .replace(/[\u2018\u2019]/g, "'")   // smart single quotes → plain
+    .replace(/[\u201C\u201D]/g, '"')   // smart double quotes → plain
+    .replace(/[\u2013\u2014]/g, '-')   // en/em dash → hyphen
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, ' ') // control chars
+    .replace(/\\/g, '/')               // backslashes → forward slash
+    .trim();
 };
 
 
@@ -307,4 +371,59 @@ window.parseLLMResponse = function parseLLMResponse(text, context = '') {
     const where = context ? ` (${context})` : '';
     throw new Error(`Could not parse LLM response as JSON${where}: ${err.message}`);
   }
+};
+
+/**
+ * Repair control characters inside JSON string values. Walks the raw text
+ * character by character; inside string values, replaces literal newlines,
+ * carriage returns, and tabs with a space, and silently drops any other
+ * bare control characters. This fixes the most common LLM failure mode:
+ * embedding a literal newline in a string value, which produces an
+ * "Unterminated string" error from JSON.parse.
+ *
+ * Intended as a helper for callers building their own JSON-repair logic.
+ * Page-local repairJSON functions in Phase 1 and Phase 2 use this as
+ * Strategy 1 before falling back to more aggressive recovery.
+ *
+ * Like parseLLMResponse, this retires when the platform structured-output
+ * parsing layer ships and applications stop doing local JSON repair.
+ *
+ * @param {string} text Raw JSON-like text (after any fence stripping)
+ * @returns {string}    Text with control characters fixed inside strings
+ */
+window.fixJSONStrings = function fixJSONStrings(text) {
+  let result = '';
+  let inString = false;
+  let escaped = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (escaped) {
+      result += ch;
+      escaped = false;
+      continue;
+    }
+    if (ch === '\\' && inString) {
+      result += ch;
+      escaped = true;
+      continue;
+    }
+    if (ch === '"') {
+      result += ch;
+      inString = !inString;
+      continue;
+    }
+    if (inString) {
+      const code = ch.charCodeAt(0);
+      if (ch === '\n' || ch === '\r' || ch === '\t') {
+        result += ' '; // replace literal whitespace control chars with space
+        continue;
+      }
+      if (code < 0x20) {
+        continue; // drop other control characters silently
+      }
+    }
+    result += ch;
+  }
+  return result;
 };
